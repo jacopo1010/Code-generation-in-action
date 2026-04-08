@@ -1,0 +1,35 @@
+ Override opzionali via tag                                                                                          
+  Queste hanno senso se si vuole una convenzione custom o un’eccezione di progetto:                                       
+                                                                                                                      
+  - fieldName                                                                                                         
+  - label                                                                                                             
+  - widget                                                                                                            
+  - gridVisible                                                                                                       
+  - formVisible
+  - foreignKeyColumn                                                                                                  
+  - joinTableName                                                                                                     
+  - mappedBy                                                                                                          
+  - table                                                                                                             
+  - columnName                                                                                                        
+  - nullable                                                                                                          
+  - unique                                                                                                            
+  - defaultValue       
+  
+   Utili ai template FreeMarker                                                                                        
+  Queste sono le più comode da esporre già pronte:                                                                    
+                                                                                                                      
+  - javaType                                                                                                          
+  - sqlType                                                                                                           
+  - collection                                                                                                        
+  - relation                                                                                                          
+  - relationType                                                                                                      
+  - required                                                                                                          
+  - nullable                                                                                                          
+  - widget                                                                                                            
+  - label                                                                                                             
+  - gridVisible                                                                                                       
+  - formVisible                                                                                                       
+  - foreignKeyColumn                                                                                                  
+  - joinTableRequired                                                                                                 
+  - joinTableName                                                                                                   
+                   

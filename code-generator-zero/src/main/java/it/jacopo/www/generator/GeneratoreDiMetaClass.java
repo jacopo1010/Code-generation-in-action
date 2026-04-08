@@ -134,13 +134,21 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		metaField.setId(this.attr(attribute, "xmi:id"));
 		metaField.setName(this.attr(attribute, "name"));
 		metaField.setOriginalType(this.attr(attribute, "type"));
-		metaField.setType(this.resolveType(this.attr(attribute, "type"), dataTypes, classes));
+		String resolvedType = this.resolveType(this.attr(attribute, "type"), dataTypes, classes);
+		metaField.setType(resolvedType);
+		metaField.setJavaType(this.resolveJavaType(resolvedType));
+		metaField.setSqlType(this.resolveSqlType(resolvedType));
 		metaField.setRelation(false);
+		metaField.setCollection(false);
+		metaField.setJoinTableRequired(false);
+		metaField.setRelationType(null);
+		metaField.setForeignKeyColumn(null);
 
 		Map<String, String> tags = this.extractTags(attribute);
 		metaField.setTags(tags);
 		metaField.setLabel(tags.get("label"));
 		metaField.setWidget(tags.get("widget"));
+		metaField.setRequired(this.isRequiredAttribute(tags));
 		return metaField;
 	}
 
@@ -175,10 +183,19 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 				relationField.setName(this.resolveAssociationName(association, referencedType, relationFields.size()));
 				relationField.setOriginalType(referencedId);
 				relationField.setType(referencedType);
+				relationField.setJavaType(referencedType);
+				relationField.setSqlType(null);
 				relationField.setRelation(true);
-				relationField.setLowerBound(this.extractBound(targetEnd, "lowerValue"));
-				relationField.setUpperBound(this.extractBound(targetEnd, "upperValue"));
+				relationField.setOwnerLowerBound(this.extractBound(ownerEnd, "lowerValue"));
+				relationField.setOwnerUpperBound(this.extractBound(ownerEnd, "upperValue"));
+				relationField.setTargetLowerBound(this.extractBound(targetEnd, "lowerValue"));
+				relationField.setTargetUpperBound(this.extractBound(targetEnd, "upperValue"));
 				relationField.setTags(this.extractTags(targetEnd));
+				relationField.setRelationType(this.resolveRelationType(relationField));
+				relationField.setCollection(this.isCollectionMultiplicity(relationField.getTargetUpperBound()));
+				relationField.setJoinTableRequired("MANY_TO_MANY".equals(relationField.getRelationType()));
+				relationField.setForeignKeyColumn(this.resolveForeignKeyColumn(ownerClass.getName(), referencedType, relationField));
+				relationField.setRequired(this.isRequiredMultiplicity(relationField.getTargetLowerBound()));
 				relationFields.add(relationField);
 			}
 		}
@@ -210,6 +227,97 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 			return className;
 		}
 		return rawType;
+	}
+
+	private String resolveJavaType(String resolvedType) {
+		if ("string".equals(resolvedType)) {
+			return "String";
+		}
+		if ("long".equals(resolvedType)) {
+			return "Long";
+		}
+		if ("boolean".equals(resolvedType)) {
+			return "Boolean";
+		}
+		if ("timestamp".equals(resolvedType)) {
+			return "Timestamp";
+		}
+		return resolvedType;
+	}
+
+	private String resolveSqlType(String resolvedType) {
+		if ("string".equals(resolvedType)) {
+			return "VARCHAR";
+		}
+		if ("long".equals(resolvedType)) {
+			return "BIGINT";
+		}
+		if ("boolean".equals(resolvedType)) {
+			return "BOOLEAN";
+		}
+		if ("timestamp".equals(resolvedType)) {
+			return "TIMESTAMP";
+		}
+		return null;
+	}
+
+	private boolean isRequiredAttribute(Map<String, String> tags) {
+		String nullable = tags.get("nullable");
+		if (nullable == null || nullable.isEmpty()) {
+			return false;
+		}
+		return !"true".equalsIgnoreCase(nullable);
+	}
+
+	private String resolveRelationType(MetaField relationField) {
+		boolean ownerMany = this.isCollectionMultiplicity(relationField.getOwnerUpperBound());
+		boolean targetMany = this.isCollectionMultiplicity(relationField.getTargetUpperBound());
+
+		if (ownerMany && targetMany) {
+			return "MANY_TO_MANY";
+		}
+		if (!ownerMany && targetMany) {
+			return "ONE_TO_MANY";
+		}
+		if (ownerMany) {
+			return "MANY_TO_ONE";
+		}
+		return "ONE_TO_ONE";
+	}
+
+	private boolean isCollectionMultiplicity(String upperBound) {
+		if (upperBound == null || upperBound.isEmpty()) {
+			return false;
+		}
+		if ("*".equals(upperBound)) {
+			return true;
+		}
+		try {
+			return Integer.parseInt(upperBound) > 1;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
+	private boolean isRequiredMultiplicity(String lowerBound) {
+		if (lowerBound == null || lowerBound.isEmpty()) {
+			return false;
+		}
+		try {
+			return Integer.parseInt(lowerBound) > 0;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
+	private String resolveForeignKeyColumn(String ownerClassName, String targetType, MetaField relationField) {
+		if ("MANY_TO_MANY".equals(relationField.getRelationType())) {
+			return null;
+		}
+		if ("ONE_TO_MANY".equals(relationField.getRelationType())) {
+			return this.toSnakeCase(ownerClassName) + "_id";
+		}
+		return this.toSnakeCase(targetType) + "_id";
 	}
 
 	private String resolveClassName(String xmiId, List<Element> classes) {
@@ -297,5 +405,20 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 			return value;
 		}
 		return Character.toLowerCase(value.charAt(0)) + value.substring(1);
+	}
+
+	private String toSnakeCase(String value) {
+		if (value == null || value.isEmpty()) {
+			return value;
+		}
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < value.length(); i++) {
+			char current = value.charAt(i);
+			if (Character.isUpperCase(current) && i > 0) {
+				builder.append('_');
+			}
+			builder.append(Character.toLowerCase(current));
+		}
+		return builder.toString();
 	}
 }

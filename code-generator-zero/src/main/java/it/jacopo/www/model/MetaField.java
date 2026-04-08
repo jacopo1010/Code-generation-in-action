@@ -9,11 +9,20 @@ public class MetaField {
 	private String name;
 	private String type;
 	private String originalType;
+	private String javaType;
+	private String sqlType;
 	private String label;
 	private String widget;
-	private String lowerBound;
-	private String upperBound;
+	private String ownerLowerBound;
+	private String ownerUpperBound;
+	private String targetLowerBound;
+	private String targetUpperBound;
+	private String relationType;
+	private String foreignKeyColumn;
 	private boolean relation;
+	private boolean collection;
+	private boolean joinTableRequired;
+	private boolean required;
 	private Map<String, String> tags;
 
 	public MetaField() {
@@ -52,6 +61,22 @@ public class MetaField {
 		this.originalType = originalType;
 	}
 
+	public String getJavaType() {
+		return javaType;
+	}
+
+	public void setJavaType(String javaType) {
+		this.javaType = javaType;
+	}
+
+	public String getSqlType() {
+		return sqlType;
+	}
+
+	public void setSqlType(String sqlType) {
+		this.sqlType = sqlType;
+	}
+
 	public String getLabel() {
 		return label;
 	}
@@ -68,20 +93,53 @@ public class MetaField {
 		this.widget = widget;
 	}
 
-	public String getLowerBound() {
-		return lowerBound;
+	
+	public String getOwnerLowerBound() {
+		return ownerLowerBound;
 	}
 
-	public void setLowerBound(String lowerBound) {
-		this.lowerBound = lowerBound;
+	public void setOwnerLowerBound(String ownerLowerBound) {
+		this.ownerLowerBound = ownerLowerBound;
 	}
 
-	public String getUpperBound() {
-		return upperBound;
+	public String getOwnerUpperBound() {
+		return ownerUpperBound;
 	}
 
-	public void setUpperBound(String upperBound) {
-		this.upperBound = upperBound;
+	public void setOwnerUpperBound(String ownerUpperBound) {
+		this.ownerUpperBound = ownerUpperBound;
+	}
+
+	public String getTargetLowerBound() {
+		return targetLowerBound;
+	}
+
+	public void setTargetLowerBound(String targetLowerBound) {
+		this.targetLowerBound = targetLowerBound;
+	}
+
+	public String getTargetUpperBound() {
+		return targetUpperBound;
+	}
+
+	public void setTargetUpperBound(String targetUpperBound) {
+		this.targetUpperBound = targetUpperBound;
+	}
+
+	public String getRelationType() {
+		return relationType;
+	}
+
+	public void setRelationType(String relationType) {
+		this.relationType = relationType;
+	}
+
+	public String getForeignKeyColumn() {
+		return foreignKeyColumn;
+	}
+
+	public void setForeignKeyColumn(String foreignKeyColumn) {
+		this.foreignKeyColumn = foreignKeyColumn;
 	}
 
 	public boolean isRelation() {
@@ -90,6 +148,30 @@ public class MetaField {
 
 	public void setRelation(boolean relation) {
 		this.relation = relation;
+	}
+
+	public boolean isCollection() {
+		return collection;
+	}
+
+	public void setCollection(boolean collection) {
+		this.collection = collection;
+	}
+
+	public boolean isJoinTableRequired() {
+		return joinTableRequired;
+	}
+
+	public void setJoinTableRequired(boolean joinTableRequired) {
+		this.joinTableRequired = joinTableRequired;
+	}
+
+	public boolean isRequired() {
+		return required;
+	}
+
+	public void setRequired(boolean required) {
+		this.required = required;
 	}
 
 	public Map<String, String> getTags() {
