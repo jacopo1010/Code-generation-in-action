@@ -47,13 +47,17 @@ public class App
 		this.engine = engine;
 	}
 
-
+    public void avvia(String... args) {
+    	FabbricaDiComandi fabbricaDiComandi = new FabbricaDiComandiImpl();
+		Comando comando = fabbricaDiComandi.costruisciComando(args, this.console);
+		comando.esegui(this.engine);
+    }
+	
+	
 	public static void main( String[] args )
 	{
 		IO console = new IOConsole();
 		App app = new App(console);
-		FabbricaDiComandi fabbricaDiComandi = new FabbricaDiComandiImpl();
-		Comando comando = fabbricaDiComandi.costruisciComando(args, app.getConsole());
-		comando.esegui(app.getEngine());
+		app.avvia(args);
 	}
 }
