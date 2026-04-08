@@ -33,7 +33,6 @@ public class Engine {
 	}
 
 	public Map<String, MetaClass> generate(String path){
-		Map<String, MetaClass> classiDiDominio = new LinkedHashMap<String, MetaClass>();
 		File xmlFile = this.loader.carica(path);
 		String orm = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.ORM);
 		if (orm == null || orm.isEmpty()) {
@@ -45,11 +44,11 @@ public class Engine {
 			//invoca metodo per hibernate 
 		}else if(orm.equals("false")){
 			//invoca metodo per JDBC
-			MetaClass meta = this.metaCreator.generaMetaClass(xmlFile);
+			return this.metaCreator.generaMetaClass(xmlFile);
 		}else {
 			throw new IllegalArgumentException("Devi inserire " + PropertiesCostanti.ORM);
 		}
-		return classiDiDominio;
+		return new LinkedHashMap<String, MetaClass>();
 	}
 
 }

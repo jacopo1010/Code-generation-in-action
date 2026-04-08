@@ -2,41 +2,300 @@ package it.jacopo.www.generator;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import it.jacopo.www.io.IO;
 import it.jacopo.www.model.MetaClass;
+import it.jacopo.www.model.MetaField;
 
 public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 
 	private DocumentBuilderFactory factory;
+	private Map<String,MetaClass> metaDati;
 	private IO io;
 	
 	public GeneratoreDiMetaClass(IO io) {
 		this.io = io;
 		this.factory = DocumentBuilderFactory.newInstance();
+		this.factory.setNamespaceAware(true);
+		this.metaDati = new LinkedHashMap<String, MetaClass>();
 	}
 	
 	@Override
-	public MetaClass generaMetaClass(File xml) {
+	public Map<String, MetaClass> generaMetaClass(File xml) {
 		 try {
 			DocumentBuilder builder = this.factory.newDocumentBuilder();
 			Document doc = builder.parse(xml);
+			doc.getDocumentElement().normalize();
 			io.stampaMessaggio("Root element: " + doc.getDocumentElement().getNodeName());
+			this.metaDati.clear();
+			Map<String, String> dataTypes = this.extractDataTypes(doc);
+			List<Element> classes = this.extractClassElements(doc);
+
+			for (Element classElement : classes) {
+				MetaClass metaClass = this.buildMetaClass(classElement, dataTypes, classes);
+				this.metaDati.put(metaClass.getName(), metaClass);
+			}
+			return new LinkedHashMap<String, MetaClass>(this.metaDati);
+			
 		 } catch (ParserConfigurationException e) {
-			e.printStackTrace();
+			throw new RuntimeException("Errore nella configurazione del parser XML", e);
 		 } catch (SAXException e) {
-			e.printStackTrace();
+			throw new RuntimeException("Errore nel parsing del file XMI: " + xml.getAbsolutePath(), e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new RuntimeException("Errore di lettura del file XMI: " + xml.getAbsolutePath(), e);
+		}
+	}
+
+	public Map<String, MetaClass> getMetaDati() {
+		return metaDati;
+	}
+
+	private Map<String, String> extractDataTypes(Document doc) {
+		Map<String, String> dataTypes = new LinkedHashMap<String, String>();
+		this.collectDataTypes(doc.getDocumentElement(), dataTypes);
+		return dataTypes;
+	}
+
+	private void collectDataTypes(Element parent, Map<String, String> dataTypes) {
+		if ("uml:DataType".equals(this.attr(parent, "xmi:type"))) {
+			dataTypes.put(this.attr(parent, "xmi:id"), this.attr(parent, "name"));
+		}
+
+		List<Element> children = this.directChildren(parent);
+		for (Element child : children) {
+			this.collectDataTypes(child, dataTypes);
+		}
+	}
+
+	private List<Element> extractClassElements(Document doc) {
+		List<Element> classes = new ArrayList<Element>();
+		this.collectClasses(doc.getDocumentElement(), classes);
+		return classes;
+	}
+
+	private void collectClasses(Element parent, List<Element> classes) {
+		if ("uml:Class".equals(this.attr(parent, "xmi:type"))) {
+			classes.add(parent);
+		}
+
+		List<Element> children = this.directChildren(parent);
+		for (Element child : children) {
+			this.collectClasses(child, classes);
+		}
+	}
+
+	private MetaClass buildMetaClass(Element classElement, Map<String, String> dataTypes, List<Element> classes) {
+		MetaClass metaClass = new MetaClass();
+		metaClass.setId(this.attr(classElement, "xmi:id"));
+		metaClass.setName(this.attr(classElement, "name"));
+
+		Map<String, String> classTags = this.extractTags(classElement);
+		metaClass.setTags(classTags);
+		metaClass.setTable(classTags.get("table"));
+		metaClass.setPageTitle(classTags.get("pageTitle"));
+
+		List<Element> attributes = this.directChildrenByName(classElement, "ownedAttribute");
+		for (Element attribute : attributes) {
+			MetaField metaField = this.buildAttribute(attribute, dataTypes, classes);
+			metaClass.addField(metaField);
+		}
+
+		List<Element> associations = this.directChildrenByName(classElement, "ownedMember");
+		for (Element association : associations) {
+			if ("uml:Association".equals(this.attr(association, "xmi:type"))) {
+				List<MetaField> relationFields = this.buildAssociationFields(association, metaClass, classes);
+				for (MetaField relationField : relationFields) {
+					metaClass.addField(relationField);
+				}
+			}
+		}
+
+		return metaClass;
+	}
+
+	private MetaField buildAttribute(Element attribute, Map<String, String> dataTypes, List<Element> classes) {
+		MetaField metaField = new MetaField();
+		metaField.setId(this.attr(attribute, "xmi:id"));
+		metaField.setName(this.attr(attribute, "name"));
+		metaField.setOriginalType(this.attr(attribute, "type"));
+		metaField.setType(this.resolveType(this.attr(attribute, "type"), dataTypes, classes));
+		metaField.setRelation(false);
+
+		Map<String, String> tags = this.extractTags(attribute);
+		metaField.setTags(tags);
+		metaField.setLabel(tags.get("label"));
+		metaField.setWidget(tags.get("widget"));
+		return metaField;
+	}
+
+	private List<MetaField> buildAssociationFields(Element association, MetaClass ownerClass, List<Element> classes) {
+		List<MetaField> relationFields = new ArrayList<MetaField>();
+		List<Element> ownedEnds = this.directChildrenByName(association, "ownedEnd");
+		if (ownedEnds.size() < 2) {
+			return relationFields;
+		}
+
+		for (int i = 0; i < ownedEnds.size(); i++) {
+			Element ownerEnd = ownedEnds.get(i);
+			String ownerTypeId = this.attr(ownerEnd, "type");
+			String ownerTypeName = this.resolveClassName(ownerTypeId, classes);
+			if (!ownerClass.getName().equals(ownerTypeName)) {
+				continue;
+			}
+
+			for (int j = 0; j < ownedEnds.size(); j++) {
+				if (i == j) {
+					continue;
+				}
+				Element targetEnd = ownedEnds.get(j);
+				String referencedId = this.attr(targetEnd, "type");
+				String referencedType = this.resolveClassName(referencedId, classes);
+				if (referencedType == null || ownerClass.getName().equals(referencedType)) {
+					continue;
+				}
+
+				MetaField relationField = new MetaField();
+				relationField.setId(this.attr(targetEnd, "xmi:id"));
+				relationField.setName(this.resolveAssociationName(association, referencedType, relationFields.size()));
+				relationField.setOriginalType(referencedId);
+				relationField.setType(referencedType);
+				relationField.setRelation(true);
+				relationField.setLowerBound(this.extractBound(targetEnd, "lowerValue"));
+				relationField.setUpperBound(this.extractBound(targetEnd, "upperValue"));
+				relationField.setTags(this.extractTags(targetEnd));
+				relationFields.add(relationField);
+			}
+		}
+
+		return relationFields;
+	}
+
+	private String resolveAssociationName(Element association, String referencedType, int index) {
+		String associationName = this.attr(association, "name");
+		if (associationName != null && !associationName.isEmpty()) {
+			if (index == 0) {
+				return associationName;
+			}
+			return associationName + index;
+		}
+		return this.lowerCaseFirst(referencedType);
+	}
+
+	private String resolveType(String rawType, Map<String, String> dataTypes, List<Element> classes) {
+		if (rawType == null || rawType.isEmpty()) {
+			return rawType;
+		}
+		if (dataTypes.containsKey(rawType)) {
+			return dataTypes.get(rawType);
+		}
+
+		String className = this.resolveClassName(rawType, classes);
+		if (className != null) {
+			return className;
+		}
+		return rawType;
+	}
+
+	private String resolveClassName(String xmiId, List<Element> classes) {
+		for (Element element : classes) {
+			if (xmiId.equals(this.attr(element, "xmi:id"))) {
+				return this.attr(element, "name");
+			}
 		}
 		return null;
 	}
 
+	private Map<String, String> extractTags(Element element) {
+		Map<String, String> tags = new LinkedHashMap<String, String>();
+		List<Element> extensions = this.directChildrenByName(element, "xmi:Extension");
+
+		for (Element extension : extensions) {
+			List<Element> tagElements = this.directChildrenByName(extension, "tag");
+			for (Element tagElement : tagElements) {
+				NamedNodeMap attributes = tagElement.getAttributes();
+				for (int i = 0; i < attributes.getLength(); i++) {
+					Node attribute = attributes.item(i);
+					tags.put(attribute.getNodeName(), this.cleanValue(attribute.getNodeValue()));
+				}
+			}
+		}
+		return tags;
+	}
+
+	private String extractBound(Element ownedEnd, String boundName) {
+		List<Element> bounds = this.directChildrenByName(ownedEnd, boundName);
+		if (bounds.isEmpty()) {
+			return null;
+		}
+		return this.cleanValue(this.attr(bounds.get(0), "value"));
+	}
+
+	private List<Element> directChildrenByName(Element parent, String name) {
+		List<Element> children = new ArrayList<Element>();
+		Node child = parent.getFirstChild();
+		while (child != null) {
+			if (child.getNodeType() == Node.ELEMENT_NODE) {
+				Element element = (Element) child;
+				if (name.equals(element.getNodeName())) {
+					children.add(element);
+				}
+			}
+			child = child.getNextSibling();
+		}
+		return children;
+	}
+
+	private List<Element> directChildren(Element parent) {
+		List<Element> children = new ArrayList<Element>();
+		Node child = parent.getFirstChild();
+		while (child != null) {
+			if (child.getNodeType() == Node.ELEMENT_NODE) {
+				children.add((Element) child);
+			}
+			child = child.getNextSibling();
+		}
+		return children;
+	}
+
+	private String attr(Element element, String name) {
+		if (element.hasAttribute(name)) {
+			return element.getAttribute(name);
+		}
+		return "";
+	}
+
+	private String cleanValue(String value) {
+		if (value == null) {
+			return null;
+		}
+		try {
+			String decoded = URLDecoder.decode(value, "UTF-8");
+			return decoded.replace("\r", "").replace("\n", "").trim();
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException("UTF-8 non supportato dalla JVM", e);
+		}
+	}
+
+	private String lowerCaseFirst(String value) {
+		if (value == null || value.isEmpty()) {
+			return value;
+		}
+		return Character.toLowerCase(value.charAt(0)) + value.substring(1);
+	}
 }
