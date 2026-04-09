@@ -10,22 +10,21 @@
     </#if>
 </#function>
 
-<#-- 2. NUOVA FUNZIONE: Motore di ricerca! 
-     Dato un ID es. "AAAAAAGdaPo...", cerca nel documento e restituisce il nome "Project" -->
+<#-- 2. Funzione: dato un ID classe, restituisce il nome della classe -->
 <#function trovaNomeClassePerId idClasseTarget>
     <#list doc["xmi:XMI"]["uml:Model"]["packagedElement"]["packagedElement"] as classe>
         <#if classe["@xmi:type"] == "uml:Class" && classe["@xmi:id"] == idClasseTarget>
             <#return classe.@name>
         </#if>
     </#list>
-    <#return "Object"> <#-- Sicurezza nel caso l'ID non si trovi -->
+    <#return "Object">
 </#function>
 
-<#-- 3. Inizia l'esplorazione per la classe che Java ci ha chiesto di generare -->
+<#-- 3. Generazione della classe corrente -->
 <#list doc["xmi:XMI"]["uml:Model"]["packagedElement"]["packagedElement"] as elemento>
 <#if elemento["@xmi:type"] == "uml:Class" && elemento.@name == classeCorrente>
 <#assign idClasseCorrente = elemento["@xmi:id"]>
-package jacopo.with.develop.model;
+package ${packageName!"jacopo.with.develop.model"};
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,18 +43,15 @@ public class ${elemento.@name} {
     // --- RELAZIONI (Associazioni UML) ---
 <#list elemento["ownedMember"] as relazione>
     <#if relazione["@xmi:type"] == "uml:Association">
-        
-        <#-- L'associazione ha due capi (ownedEnd). Cicliamo per trovare quello che punta all'ALTRA classe -->
         <#list relazione["ownedEnd"] as capo>
             <#if capo["@type"] != idClasseCorrente>
                 <#assign targetClassId = capo["@type"]>
                 <#assign targetClassName = trovaNomeClassePerId(targetClassId)>
                 <#assign cardinalitaMax = capo["upperValue"].@value>
-                <#assign nomeVariabile = targetClassName?uncap_first> <#-- Rende "Project" -> "project" -->
+                <#assign nomeVariabile = targetClassName?uncap_first>
 
-                <#-- Controllo della cardinalità: Se c'è l'asterisco generiamo una Lista! -->
                 <#if cardinalitaMax == "*">
-    private List<${targetClassName}> ${nomeVariabile}List = new ArrayList<>();
+    private List<${targetClassName}> ${nomeVariabile}List;
                 <#else>
     private ${targetClassName} ${nomeVariabile};
                 </#if>
@@ -63,6 +59,26 @@ public class ${elemento.@name} {
         </#list>
     </#if>
 </#list>
+
+    // --- COSTRUTTORE ---
+    public ${elemento.@name}() {
+<#list elemento["ownedMember"] as relazione>
+    <#if relazione["@xmi:type"] == "uml:Association">
+        <#list relazione["ownedEnd"] as capo>
+            <#if capo["@type"] != idClasseCorrente>
+                <#assign targetClassId = capo["@type"]>
+                <#assign targetClassName = trovaNomeClassePerId(targetClassId)>
+                <#assign cardinalitaMax = capo["upperValue"].@value>
+                <#assign nomeVariabile = targetClassName?uncap_first>
+
+                <#if cardinalitaMax == "*">
+        this.${nomeVariabile}List = new ArrayList<>();
+                </#if>
+            </#if>
+        </#list>
+    </#if>
+</#list>
+    }
 
     // --- GETTER E SETTER (Attributi) ---
 <#list elemento["ownedAttribute"] as attributo>
@@ -83,7 +99,7 @@ public class ${elemento.@name} {
                 <#assign targetClassName = trovaNomeClassePerId(capo["@type"])>
                 <#assign cardinalitaMax = capo["upperValue"].@value>
                 <#assign nomeVar = targetClassName?uncap_first>
-                
+
                 <#if cardinalitaMax == "*">
     public List<${targetClassName}> get${targetClassName}List() {
         return this.${nomeVar}List;

@@ -83,8 +83,7 @@ public class Engine {
 			//invoca metodo per hibernate 
 		}else if(orm.equals("false")){
 			//invoca metodo per JDBC
-			String output = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.MODEL_OUTPUT_PATH);
-			this.marker.generateModel(path, xmlFile, output);
+			this.createModel(xmlFile);
 			return this.metaCreator.generaMetaClass(xmlFile);
 		}else {
 			throw new IllegalArgumentException("Devi inserire " + PropertiesCostanti.ORM);
@@ -93,6 +92,10 @@ public class Engine {
 	}
 	
 	
-	
+	private void createModel(File xmlFile) {
+		String output = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.MODEL_OUTPUT_PATH);
+		String packageName = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.PACKAGE_MODEL);
+		this.marker.generateModel(packageName,xmlFile, output);
+	}
 
 }

@@ -37,7 +37,7 @@ public class FreeMarkerManager {
 		this.io = io;
 	}
 
-	public void generateModel(String Path, File xmi,String output) {
+	public void generateModel(String packageModel,File xmi,String output) {
 		try {
 			// 1. CORREZIONE: Passiamo la CARTELLA, non il file!
 			conf.setDirectoryForTemplateLoading(new File("C:\\Users\\jaorr\\git\\Code-generation-in-action\\code-generator-zero\\src\\main\\resources\\freemarker"));
@@ -45,6 +45,9 @@ public class FreeMarkerManager {
 			NodeModel node = NodeModel.parse(xmi);
 			if (output == null || output.trim().isEmpty()) {
 				throw new IllegalArgumentException("Definire nell'application.properties la cartella di output");
+			}
+			if (packageModel == null || packageModel.trim().isEmpty()) {
+				throw new IllegalArgumentException("Definire nell'application.properties il package delle classi di modello");
 			}
 
 			// Creiamo la cartella di output se non esiste
@@ -72,7 +75,8 @@ public class FreeMarkerManager {
 					Map<String, Object> dati = new HashMap<>();
 					dati.put("doc", node); // Tutto l'XML
 					dati.put("classeCorrente", nomeClasse); // Il nome della classe in questo giro di ciclo
-
+					dati.put("packageName", packageModel);
+					
 					// Eseguiamo il template
 					template.process(dati, writer);
 
