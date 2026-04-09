@@ -6,6 +6,7 @@ public class PropertiesCostanti {
 	public static final String UI_CONFIG_PATH = "ui.config.path";
 	public static final String MODEL_OUTPUT_PATH ="output.path";
 	public static final String ORM = "generator.hibernate.enable";
+
 	
 	/***
  domain.model.path=C:/project/models/domain.xml
