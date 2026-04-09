@@ -22,6 +22,7 @@ public class ComandoInizializzaConfigurazioni implements Comando {
 		/* qui posso domandare se usare hibernate oppure no e in base alla risposta eseguire qualcosa*/
 		io.stampaMessaggio("Generazione modelli in corso");
 		this.stampaSchema(engine.generate(this.pathString));
+		engine.generateWithFreemarker(pathString);
 	}
 
 	private void stampaSchema(Map<String, MetaClass> data) {
