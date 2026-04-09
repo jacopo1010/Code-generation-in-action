@@ -92,7 +92,7 @@ public class Engine {
 	        }
 	        
 	        // Creiamo la cartella di output se non esiste
-	        new File(output).mkdirs();
+	        new File(output);
 
 	        // Carichiamo il template
 	        Template template = conf.getTemplate("modelTemplate.ftl");
