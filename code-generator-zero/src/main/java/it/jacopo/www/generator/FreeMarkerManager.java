@@ -6,91 +6,113 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import freemarker.ext.dom.NodeModel;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import it.jacopo.www.io.IO;
-import it.jacopo.www.loader.PropertiesCostanti;
+import it.jacopo.www.model.MetaClass;
 
 public class FreeMarkerManager {
 
-	private DocumentBuilderFactory factory;
+	private static final String MODEL_TEMPLATE_NAME = "freemarker/modelTemplate.ftl";
+	private static final String SQL_TEMPLATE_NAME = "freemarker/sqlTemplate.ftl";
 	private Configuration conf;
 	private IO io;
 
 	public FreeMarkerManager(IO io) {
-		this.factory = DocumentBuilderFactory.newInstance();
 		this.conf = new Configuration(Configuration.VERSION_2_3_34);
+		this.conf.setClassLoaderForTemplateLoading(Thread.currentThread().getContextClassLoader(), "/");
+		this.conf.setDefaultEncoding("UTF-8");
 		this.io = io;
 	}
 
-	public void generateModel(String packageModel,File xmi,String output) {
+	public void generateModel(Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
-			// 1. CORREZIONE: Passiamo la CARTELLA, non il file!
-			conf.setDirectoryForTemplateLoading(new File("C:\\Users\\jaorr\\git\\Code-generation-in-action\\code-generator-zero\\src\\main\\resources\\freemarker"));
-			conf.setDefaultEncoding("UTF-8");
-			NodeModel node = NodeModel.parse(xmi);
-			if (output == null || output.trim().isEmpty()) {
+			if (outputRoot == null || outputRoot.trim().isEmpty()) {
+				throw new IllegalArgumentException("Definire nell'application.properties la cartella di output");
+			}
+			if (metaClasses == null || metaClasses.isEmpty()) {
+				throw new IllegalArgumentException("Nessuna meta-classe disponibile per la generazione");
+			}
+
+			Path p = Paths.get(outputRoot);
+			
+			if (!Files.exists(p)) {
+				throw new IOException("Impossibile creare la cartella di output: " + p.toFile().getAbsolutePath());
+			}
+
+			Template template = conf.getTemplate(MODEL_TEMPLATE_NAME);
+			for (MetaClass metaClass : metaClasses.values()) {
+				String nomeFile = metaClass.getName() + ".java";
+				File fileDestinazione = new File(p.toFile(), nomeFile);
+				Map<String, Object> dati = new HashMap<String, Object>();
+				dati.put("metaClass", metaClass);
+
+				try (Writer writer = new OutputStreamWriter(new FileOutputStream(fileDestinazione), StandardCharsets.UTF_8)) {
+					template.process(dati, writer);
+				}
+				io.stampaMessaggio("Generato: " + fileDestinazione.getAbsolutePath());
+			}
+			io.stampaMessaggio("Generazione completata con successo!");
+		} catch (IOException | TemplateException e) {
+			throw new RuntimeException("Errore durante la generazione dei model", e);
+		}
+	}
+
+	private File resolveOutputDirectory(String outputRoot, String packageModel) {
+		File root = new File(outputRoot);
+		String packagePath = packageModel.replace('.', File.separatorChar);
+		String normalizedRootPath = this.normalizePath(root.getPath());
+		String normalizedPackagePath = this.normalizePath(packagePath);
+		if (normalizedRootPath.endsWith(normalizedPackagePath)) {
+			return root;
+		}
+		return new File(root, packagePath);
+	}
+
+	private String normalizePath(String path) {
+		return path.replace('\\', '/').replaceAll("/+", "/").replaceAll("/$", "");
+	}
+	
+	public void generateSchema(String packageModel, Map<String, MetaClass> metaClasses, String outputRoot) {
+		try {
+			if (outputRoot == null || outputRoot.trim().isEmpty()) {
 				throw new IllegalArgumentException("Definire nell'application.properties la cartella di output");
 			}
 			if (packageModel == null || packageModel.trim().isEmpty()) {
 				throw new IllegalArgumentException("Definire nell'application.properties il package delle classi di modello");
 			}
+			if (metaClasses == null || metaClasses.isEmpty()) {
+				throw new IllegalArgumentException("Nessuna meta-classe disponibile per la generazione");
+			}
+			File outputDirectory = this.resolveOutputDirectory(outputRoot, packageModel);
+			if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
+				throw new IOException("Impossibile creare la cartella di output: " + outputDirectory.getAbsolutePath());
+			}
+			Template template = conf.getTemplate(SQL_TEMPLATE_NAME);
+			for (MetaClass metaClass : metaClasses.values()) {
+				String nomeFile = metaClass.getName() + ".sql";
+				File fileDestinazione = new File(outputDirectory, nomeFile);
+				Map<String, Object> dati = new HashMap<String, Object>();
+				dati.put("metaClass", metaClass);
+				dati.put("packageName", packageModel);
 
-			// Creiamo la cartella di output se non esiste
-			new File(output).mkdir();
-			Template template = conf.getTemplate("modelTemplate.ftl");
-			DocumentBuilder dBuilder = this.factory.newDocumentBuilder();
-			Document docJava = dBuilder.parse(xmi);
-			NodeList listaElementi = docJava.getElementsByTagName("packagedElement");
-
-			for (int i = 0; i < listaElementi.getLength(); i++) {
-				Element elemento = (Element) listaElementi.item(i);
-
-				if ("uml:Class".equals(elemento.getAttribute("xmi:type"))) {
-
-					String nomeClasse = elemento.getAttribute("name");
-					String nomeFile = nomeClasse + ".java";
-
-					io.stampaMessaggio(output);
-
-					// 5. CORREZIONE: Ora passiamo un FileOutputStream al Writer!
-					File fileDestinazione = new File(output, nomeFile);
-					Writer writer = new OutputStreamWriter(new FileOutputStream(fileDestinazione), StandardCharsets.UTF_8);
-
-					// Prepariamo i dati
-					Map<String, Object> dati = new HashMap<>();
-					dati.put("doc", node); // Tutto l'XML
-					dati.put("classeCorrente", nomeClasse); // Il nome della classe in questo giro di ciclo
-					dati.put("packageName", packageModel);
-					
-					// Eseguiamo il template
+				try (Writer writer = new OutputStreamWriter(new FileOutputStream(fileDestinazione), StandardCharsets.UTF_8)) {
 					template.process(dati, writer);
-
-					// Salviamo e chiudiamo il file
-					writer.close();
 				}
+				io.stampaMessaggio("Generato: " + fileDestinazione.getAbsolutePath());
 			}
 			io.stampaMessaggio("Generazione completata con successo!");
-		} catch (IOException | SAXException | ParserConfigurationException | TemplateException e) {
-			System.err.println("Errore durante la generazione: " + e.getMessage());
-			e.printStackTrace();
+		}catch (IOException | TemplateException e) {
+			throw new RuntimeException("Errore durante la generazione dello schema sql", e);
 		}
 	}
-	
-	
+
 }
 

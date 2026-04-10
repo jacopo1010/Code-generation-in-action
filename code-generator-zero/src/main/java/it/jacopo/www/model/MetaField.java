@@ -13,6 +13,8 @@ public class MetaField {
 	private String sqlType;
 	private String label;
 	private String widget;
+	private String javaDoc;
+	private String since;
 	private String ownerLowerBound;
 	private String ownerUpperBound;
 	private String targetLowerBound;
@@ -91,6 +93,22 @@ public class MetaField {
 
 	public void setWidget(String widget) {
 		this.widget = widget;
+	}
+
+	public String getJavaDoc() {
+		return javaDoc;
+	}
+
+	public void setJavaDoc(String javaDoc) {
+		this.javaDoc = javaDoc;
+	}
+
+	public String getSince() {
+		return since;
+	}
+
+	public void setSince(String since) {
+		this.since = since;
 	}
 
 	

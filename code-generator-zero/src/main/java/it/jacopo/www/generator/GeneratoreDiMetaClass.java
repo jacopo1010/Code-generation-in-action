@@ -109,6 +109,9 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		metaClass.setTags(classTags);
 		metaClass.setTable(classTags.get("table"));
 		metaClass.setPageTitle(classTags.get("pageTitle"));
+		metaClass.setJavaDoc(this.resolveDocumentation(classTags, metaClass.getName()));
+		metaClass.setSince(classTags.get("since"));
+		metaClass.setAuthor(classTags.get("author"));
 
 		List<Element> attributes = this.directChildrenByName(classElement, "ownedAttribute");
 		for (Element attribute : attributes) {
@@ -148,6 +151,8 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		metaField.setTags(tags);
 		metaField.setLabel(tags.get("label"));
 		metaField.setWidget(tags.get("widget"));
+		metaField.setJavaDoc(this.resolveDocumentation(tags, metaField.getName()));
+		metaField.setSince(tags.get("since"));
 		metaField.setRequired(this.isRequiredAttribute(tags));
 		return metaField;
 	}
@@ -191,6 +196,8 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 				relationField.setTargetLowerBound(this.extractBound(targetEnd, "lowerValue"));
 				relationField.setTargetUpperBound(this.extractBound(targetEnd, "upperValue"));
 				relationField.setTags(this.extractTags(targetEnd));
+				relationField.setJavaDoc(this.resolveDocumentation(relationField.getTags(), relationField.getName()));
+				relationField.setSince(relationField.getTags().get("since"));
 				relationField.setRelationType(this.resolveRelationType(relationField));
 				relationField.setCollection(this.isCollectionMultiplicity(relationField.getTargetUpperBound()));
 				relationField.setJoinTableRequired("MANY_TO_MANY".equals(relationField.getRelationType()));
@@ -398,6 +405,20 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException("UTF-8 non supportato dalla JVM", e);
 		}
+	}
+
+	private String resolveDocumentation(Map<String, String> tags, String fallbackName) {
+		String description = tags.get("description");
+		if (description != null && !description.trim().isEmpty()) {
+			return description.trim();
+		}
+
+		String documentation = tags.get("documentation");
+		if (documentation != null && !documentation.trim().isEmpty()) {
+			return documentation.trim();
+		}
+
+		return "Elemento generato automaticamente: " + fallbackName;
 	}
 
 	private String lowerCaseFirst(String value) {

@@ -9,23 +9,25 @@ public class FabbricaDiComandiImpl implements FabbricaDiComandi {
 
 	@Override
 	public Comando costruisciComando(String[] args, IO io) {
+		if (args == null || args.length == 0) {
+			return new ComandoNonValido(io,"Nessun comando specificato. Uso: generate <path-application-properties>");
+		}
+
 		List<String> input = Arrays.asList(args);
 		String istruzione = input.get(0);
-		Comando comando = null;
-		if (istruzione != null) {
-			switch (istruzione) {
-			case ComandiCostanti.CONFIG:
-				String parametro = input.get(1);
-				if(parametro == null || parametro.isEmpty()) throw new IllegalArgumentException("Devi inserire il path "
-						+ "del file application.properties fai copia e incolla! ");
-				comando = new ComandoInizializzaConfigurazioni(io,parametro);
-				break;
-			default:
-				comando = new ComandoNonValido(io);
-				break;
-			}
+		if (istruzione == null || istruzione.trim().isEmpty()) {
+			return new ComandoNonValido(io,"Comando vuoto. Uso: generate <path-application-properties>");
 		}
-		return comando;
+
+		switch (istruzione) {
+		case ComandiCostanti.CONFIG:
+			if (input.size() < 2 || input.get(1) == null || input.get(1).trim().isEmpty()) {
+				return new ComandoNonValido(io,"Devi inserire il path del file application.properties. Uso: generate <path-application-properties>");
+			}
+			return new ComandoInizializzaConfigurazioni(io, input.get(1).trim());
+		default:
+			return new ComandoNonValido(io,"Comando non valido: " + istruzione + ". Uso: generate <path-application-properties>");
+		}
 	}
 
 	

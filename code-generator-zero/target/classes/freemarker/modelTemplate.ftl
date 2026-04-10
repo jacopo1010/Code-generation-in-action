@@ -1,126 +1,64 @@
-<#ftl ns_prefixes={"xmi":"http://schema.omg.org/spec/XMI/2.1", "uml":"http://schema.omg.org/spec/UML/2.0"}>
-
-<#-- 1. Funzione per mappare i tipi base di StarUML in Java -->
-<#function mappaTipo xmiType>
-    <#if xmiType == "string_id"><#return "String">
-    <#elseif xmiType == "long_id"><#return "Long">
-    <#elseif xmiType == "boolean_id"><#return "Boolean">
-    <#elseif xmiType == "timestamp_id"><#return "LocalDateTime">
-    <#else><#return "Object">
-    </#if>
-</#function>
-
-<#-- 2. Funzione: dato un ID classe, restituisce il nome della classe -->
-<#function trovaNomeClassePerId idClasseTarget>
-    <#list doc["xmi:XMI"]["uml:Model"]["packagedElement"]["packagedElement"] as classe>
-        <#if classe["@xmi:type"] == "uml:Class" && classe["@xmi:id"] == idClasseTarget>
-            <#return classe.@name>
-        </#if>
-    </#list>
-    <#return "Object">
-</#function>
-
-<#-- 3. Generazione della classe corrente -->
-<#list doc["xmi:XMI"]["uml:Model"]["packagedElement"]["packagedElement"] as elemento>
-<#if elemento["@xmi:type"] == "uml:Class" && elemento.@name == classeCorrente>
-<#assign idClasseCorrente = elemento["@xmi:id"]>
 package ${packageName!"jacopo.with.develop.model"};
 
-import java.time.LocalDateTime;
+<#assign fields = metaClass.fields?values>
+<#assign collectionFields = fields?filter(field -> field.collection)>
+<#assign usesTimestamp = fields?filter(field -> field.javaType == "Timestamp")?size gt 0>
+<#if usesTimestamp>
+import java.sql.Timestamp;
+</#if>
+<#if collectionFields?size gt 0>
 import java.util.List;
 import java.util.ArrayList;
+</#if>
 
 /**
- * Classe generata automaticamente dal modello UML di Jacopo.
+ * ${metaClass.javaDoc}
+<#if metaClass.since?? && metaClass.since?has_content>
+ * @since ${metaClass.since}
+</#if>
+<#if metaClass.author?? && metaClass.author?has_content>
+ * @author ${metaClass.author}
+</#if>
  */
-public class ${elemento.@name} {
+public class ${metaClass.name} {
 
     // --- ATTRIBUTI SEMPLICI ---
-<#list elemento["ownedAttribute"] as attributo>
-    private ${mappaTipo(attributo.@type)} ${attributo.@name};
-</#list>
-
-    // --- RELAZIONI (Associazioni UML) ---
-<#list elemento["ownedMember"] as relazione>
-    <#if relazione["@xmi:type"] == "uml:Association">
-        <#list relazione["ownedEnd"] as capo>
-            <#if capo["@type"] != idClasseCorrente>
-                <#assign targetClassId = capo["@type"]>
-                <#assign targetClassName = trovaNomeClassePerId(targetClassId)>
-                <#assign cardinalitaMax = capo["upperValue"].@value>
-                <#assign nomeVariabile = targetClassName?uncap_first>
-
-                <#if cardinalitaMax == "*">
-    private List<${targetClassName}> ${nomeVariabile}List;
-                <#else>
-    private ${targetClassName} ${nomeVariabile};
-                </#if>
-            </#if>
-        </#list>
+<#list fields as field>
+    /**
+     * ${field.javaDoc}
+<#if field.since?? && field.since?has_content>
+     * @since ${field.since}
+</#if>
+     */
+    <#if field.collection>
+    private List<${field.javaType}> ${field.name} = new ArrayList<>();
+    <#else>
+    private ${field.javaType} ${field.name};
     </#if>
 </#list>
 
     // --- COSTRUTTORE ---
-    public ${elemento.@name}() {
-<#list elemento["ownedMember"] as relazione>
-    <#if relazione["@xmi:type"] == "uml:Association">
-        <#list relazione["ownedEnd"] as capo>
-            <#if capo["@type"] != idClasseCorrente>
-                <#assign targetClassId = capo["@type"]>
-                <#assign targetClassName = trovaNomeClassePerId(targetClassId)>
-                <#assign cardinalitaMax = capo["upperValue"].@value>
-                <#assign nomeVariabile = targetClassName?uncap_first>
-
-                <#if cardinalitaMax == "*">
-        this.${nomeVariabile}List = new ArrayList<>();
-                </#if>
-            </#if>
-        </#list>
-    </#if>
-</#list>
+    public ${metaClass.name}() {
     }
 
-    // --- GETTER E SETTER (Attributi) ---
-<#list elemento["ownedAttribute"] as attributo>
-    public ${mappaTipo(attributo.@type)} get${attributo.@name?cap_first}() {
-        return this.${attributo.@name};
+    // --- GETTER E SETTER ---
+<#list fields as field>
+    /**
+     * Restituisce ${field.name}.
+     *
+     * @return ${field.javaDoc?uncap_first}
+     */
+    public <#if field.collection>List<${field.javaType}><#else>${field.javaType}</#if> get${field.name?cap_first}() {
+        return this.${field.name};
     }
 
-    public void set${attributo.@name?cap_first}(${mappaTipo(attributo.@type)} ${attributo.@name}) {
-        this.${attributo.@name} = ${attributo.@name};
+    /**
+     * Imposta ${field.name}.
+     *
+     * @param ${field.name} ${field.javaDoc?uncap_first}
+     */
+    public void set${field.name?cap_first}(<#if field.collection>List<${field.javaType}><#else>${field.javaType}</#if> ${field.name}) {
+        this.${field.name} = ${field.name};
     }
-</#list>
-
-    // --- GETTER E SETTER (Relazioni) ---
-<#list elemento["ownedMember"] as relazione>
-    <#if relazione["@xmi:type"] == "uml:Association">
-        <#list relazione["ownedEnd"] as capo>
-            <#if capo["@type"] != idClasseCorrente>
-                <#assign targetClassName = trovaNomeClassePerId(capo["@type"])>
-                <#assign cardinalitaMax = capo["upperValue"].@value>
-                <#assign nomeVar = targetClassName?uncap_first>
-
-                <#if cardinalitaMax == "*">
-    public List<${targetClassName}> get${targetClassName}List() {
-        return this.${nomeVar}List;
-    }
-
-    public void set${targetClassName}List(List<${targetClassName}> ${nomeVar}List) {
-        this.${nomeVar}List = ${nomeVar}List;
-    }
-                <#else>
-    public ${targetClassName} get${targetClassName}() {
-        return this.${nomeVar};
-    }
-
-    public void set${targetClassName}(${targetClassName} ${nomeVar}) {
-        this.${nomeVar} = ${nomeVar};
-    }
-                </#if>
-            </#if>
-        </#list>
-    </#if>
 </#list>
 }
-</#if>
-</#list>

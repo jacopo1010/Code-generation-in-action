@@ -9,6 +9,9 @@ public class MetaClass {
 	private String name;
 	private String table;
 	private String pageTitle;
+	private String javaDoc;
+	private String since;
+	private String author;
 	private Map<String, String> tags;
 	private Map<String, MetaField> fields;
 	private Map<String, MetaClass> classes;
@@ -49,6 +52,30 @@ public class MetaClass {
 
 	public void setPageTitle(String pageTitle) {
 		this.pageTitle = pageTitle;
+	}
+
+	public String getJavaDoc() {
+		return javaDoc;
+	}
+
+	public void setJavaDoc(String javaDoc) {
+		this.javaDoc = javaDoc;
+	}
+
+	public String getSince() {
+		return since;
+	}
+
+	public void setSince(String since) {
+		this.since = since;
+	}
+
+	public String getAuthor() {
+		return author;
+	}
+
+	public void setAuthor(String author) {
+		this.author = author;
 	}
 
 	public Map<String, String> getTags() {
