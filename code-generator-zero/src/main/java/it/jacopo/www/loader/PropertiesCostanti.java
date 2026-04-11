@@ -2,11 +2,13 @@ package it.jacopo.www.loader;
 
 public class PropertiesCostanti {
 
-	public static final String MODEL_DOMAIN_PATH = "domain.model.path";
-	public static final String UI_CONFIG_PATH = "ui.config.path";
-	public static final String MODEL_OUTPUT_PATH ="output.path";
+	public static final String MODEL_DOMAIN_PATH = "generator.domain.model.path";
+	public static final String UI_CONFIG_PATH = "generator.ui.config.path";
+	public static final String MODEL_OUTPUT_PATH ="generator.model.output.path";
 	public static final String ORM = "generator.hibernate.enable";
-    public static final String PACKAGE_MODEL ="model.package"; 
+    public static final String PACKAGE_MODEL ="generator.model.package"; 
+    public static final String SQL_SCHEMA_PATH = "generator.sql.output";
+  
 	
 	/***
  domain.model.path=C:/project/models/domain.xml

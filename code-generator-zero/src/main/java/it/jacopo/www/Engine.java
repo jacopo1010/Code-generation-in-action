@@ -1,6 +1,8 @@
 package it.jacopo.www;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -66,7 +68,8 @@ public class Engine {
 							+ PropertiesCostanti.ORM + "=false per generare i model Java.");
 		} else if ("false".equalsIgnoreCase(orm)) {
 			Map<String, MetaClass> metaClasses = this.metaCreator.generaMetaClass(xmlFile);
-			this.createModel(metaClasses);
+			this.createModel(metaClasses, path);
+			this.createSchemaSql(metaClasses, path);
 			return metaClasses;
 		} else {
 			throw new IllegalArgumentException("Devi inserire " + PropertiesCostanti.ORM);
@@ -74,14 +77,33 @@ public class Engine {
 	}
 	
 	
-	private void createModel(Map<String, MetaClass> metaClasses) {
+	private void createModel(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
 		String output = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.MODEL_OUTPUT_PATH);
 		String packageName = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.PACKAGE_MODEL);
-		this.marker.generateModel(packageName, metaClasses, output);
+		this.marker.generateModel(packageName, metaClasses, this.resolveConfiguredPath(applicationPropertiesPath, output));
 	}
   
-	private void createSchemaSql(Map<String, MetaClass> metaClasses) {
-		String output = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.MODEL_OUTPUT_PATH);
-		this.marker.generateSchema(output, metaClasses, output);
+	private void createSchemaSql(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
+		String output = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.SQL_SCHEMA_PATH);
+		this.marker.generateSchema(metaClasses, this.resolveConfiguredPath(applicationPropertiesPath, output));
+	}
+
+	private String resolveConfiguredPath(String applicationPropertiesPath, String configuredPath) {
+		if (configuredPath == null || configuredPath.trim().isEmpty()) {
+			return configuredPath;
+		}
+
+		Path configured = Paths.get(configuredPath);
+		if (configured.isAbsolute()) {
+			return configured.normalize().toString();
+		}
+
+		Path propertiesFile = Paths.get(applicationPropertiesPath).toAbsolutePath().normalize();
+		Path propertiesDirectory = propertiesFile.getParent();
+		if (propertiesDirectory == null) {
+			return configured.normalize().toString();
+		}
+
+		return propertiesDirectory.resolve(configured).normalize().toString();
 	}
 }

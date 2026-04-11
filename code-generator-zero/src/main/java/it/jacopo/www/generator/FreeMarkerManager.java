@@ -78,39 +78,41 @@ public class FreeMarkerManager {
 		return path.replace('\\', '/').replaceAll("/+", "/").replaceAll("/$", "");
 	}
 	
-	public void generateSchema(String packageModel, Map<String, MetaClass> metaClasses, String outputRoot) {
+	public void generateSchema(Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
 			if (outputRoot == null || outputRoot.trim().isEmpty()) {
 				throw new IllegalArgumentException("Definire nell'application.properties la cartella di output");
 			}
-			if (packageModel == null || packageModel.trim().isEmpty()) {
-				throw new IllegalArgumentException("Definire nell'application.properties il package delle classi di modello");
-			}
 			if (metaClasses == null || metaClasses.isEmpty()) {
 				throw new IllegalArgumentException("Nessuna meta-classe disponibile per la generazione");
 			}
-			File outputDirectory = this.resolveOutputDirectory(outputRoot, packageModel);
-			if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
-				throw new IOException("Impossibile creare la cartella di output: " + outputDirectory.getAbsolutePath());
+			
+			Path p = Paths.get(outputRoot);
+			if (Files.isDirectory(p)) {
+				throw new RuntimeException("Il path configurato punta a una directory: " + p);
 			}
-			Template template = conf.getTemplate(SQL_TEMPLATE_NAME);
-			for (MetaClass metaClass : metaClasses.values()) {
-				String nomeFile = metaClass.getName() + ".sql";
-				File fileDestinazione = new File(outputDirectory, nomeFile);
-				Map<String, Object> dati = new HashMap<String, Object>();
-				dati.put("metaClass", metaClass);
-				dati.put("packageName", packageModel);
+			if (p.getParent() != null) {
+				Files.createDirectories(p.getParent());
+			}
+			String nomeFile = p.getFileName().toString();
+			if(!nomeFile.toLowerCase().endsWith(".sql")) {
+				throw new RuntimeException("Il file configurato non è un formato sql valido: " + p);
+			}
 
-				try (Writer writer = new OutputStreamWriter(new FileOutputStream(fileDestinazione), StandardCharsets.UTF_8)) {
-					template.process(dati, writer);
-				}
-				io.stampaMessaggio("Generato: " + fileDestinazione.getAbsolutePath());
+			Template template = conf.getTemplate(SQL_TEMPLATE_NAME);
+			Map<String, Object> dati = new HashMap<String, Object>();
+			dati.put("metaClasses", metaClasses);
+
+			File fileDestinazione = p.toFile();
+			try (Writer writer = new OutputStreamWriter(new FileOutputStream(fileDestinazione), StandardCharsets.UTF_8)) {
+				template.process(dati, writer);
 			}
+			io.stampaMessaggio("Generato: " + fileDestinazione.getAbsolutePath());
+			
 			io.stampaMessaggio("Generazione completata con successo!");
 		}catch (IOException | TemplateException e) {
 			throw new RuntimeException("Errore durante la generazione dello schema sql", e);
 		}
 	}
-
+  
 }
-
