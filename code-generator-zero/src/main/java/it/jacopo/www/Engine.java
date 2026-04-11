@@ -82,6 +82,6 @@ public class Engine {
   
 	private void createSchemaSql(Map<String, MetaClass> metaClasses) {
 		String output = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.MODEL_OUTPUT_PATH);
-		this.marker.generateModel(metaClasses, output);
+		this.marker.generateSchema(output, metaClasses, output);
 	}
 }

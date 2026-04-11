@@ -32,7 +32,7 @@ public class FreeMarkerManager {
 		this.io = io;
 	}
 
-	public void generateModel(Map<String, MetaClass> metaClasses, String outputRoot) {
+	public void generateModel(String packageModel,Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
 			if (outputRoot == null || outputRoot.trim().isEmpty()) {
 				throw new IllegalArgumentException("Definire nell'application.properties la cartella di output");
@@ -41,16 +41,14 @@ public class FreeMarkerManager {
 				throw new IllegalArgumentException("Nessuna meta-classe disponibile per la generazione");
 			}
 
-			Path p = Paths.get(outputRoot);
-			
-			if (!Files.exists(p)) {
-				throw new IOException("Impossibile creare la cartella di output: " + p.toFile().getAbsolutePath());
+			File outputDirectory = this.resolveOutputDirectory(outputRoot, packageModel);
+			if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
+				throw new IOException("Impossibile creare la cartella di output: " + outputDirectory.getAbsolutePath());
 			}
-
 			Template template = conf.getTemplate(MODEL_TEMPLATE_NAME);
 			for (MetaClass metaClass : metaClasses.values()) {
 				String nomeFile = metaClass.getName() + ".java";
-				File fileDestinazione = new File(p.toFile(), nomeFile);
+				File fileDestinazione = new File(outputDirectory, nomeFile);
 				Map<String, Object> dati = new HashMap<String, Object>();
 				dati.put("metaClass", metaClass);
 
