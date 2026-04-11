@@ -92,7 +92,8 @@ public class Engine {
 		if (configuredPath == null || configuredPath.trim().isEmpty()) {
 			return configuredPath;
 		}
-
+        
+		configuredPath = configuredPath.trim();   
 		Path configured = Paths.get(configuredPath);
 		if (configured.isAbsolute()) {
 			return configured.normalize().toString();

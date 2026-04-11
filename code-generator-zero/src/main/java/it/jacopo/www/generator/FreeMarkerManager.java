@@ -51,7 +51,8 @@ public class FreeMarkerManager {
 				File fileDestinazione = new File(outputDirectory, nomeFile);
 				Map<String, Object> dati = new HashMap<String, Object>();
 				dati.put("metaClass", metaClass);
-
+                dati.put("packageName", packageModel);
+				
 				try (Writer writer = new OutputStreamWriter(new FileOutputStream(fileDestinazione), StandardCharsets.UTF_8)) {
 					template.process(dati, writer);
 				}
