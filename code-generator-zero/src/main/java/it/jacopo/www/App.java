@@ -1,6 +1,7 @@
 package it.jacopo.www;
 
 import java.lang.reflect.Array;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -56,8 +57,11 @@ public class App
 	
 	public static void main( String[] args )
 	{
+		long startTime = System.currentTimeMillis();
 		IO console = new IOConsole();
 		App app = new App(console);
 		app.avvia(args);
+		long timeDiff = System.currentTimeMillis() - startTime;
+	    System.out.println("Elapsed time in milliseconds: " + timeDiff);
 	}
 }
