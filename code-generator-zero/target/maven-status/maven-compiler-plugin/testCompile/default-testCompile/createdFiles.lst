@@ -1,13 +1,11 @@
-it\jacopo\www\generator\GeneratoreDiMetaClassTest$IOFittizio.class
-it\jacopo\www\generator\FreeMarkerManagerTest.class
-it\jacopo\www\generator\GeneratoreDiMetaClassTest.class
-it\jacopo\www\EngineTest$LoaderStub.class
-it\jacopo\www\generator\GeneratoreDiMetaClassTest$1.class
 it\jacopo\www\comandi\FabbricaDiComandiImplTest$IOFittizio.class
 it\jacopo\www\comandi\FabbricaDiComandiImplTest.class
+it\jacopo\www\generator\GeneratoreDiMetaClassTest$IOFittizio.class
 it\jacopo\www\comandi\FabbricaDiComandiImplTest$1.class
-it\jacopo\www\EngineTest$1.class
 it\jacopo\www\generator\FreeMarkerManagerTest$IOFittizio.class
 it\jacopo\www\loader\CaricatoreDiFileImplTest.class
+it\jacopo\www\generator\FreeMarkerManagerTest.class
+it\jacopo\www\generator\GeneratoreDiMetaClassTest.class
 it\jacopo\www\generator\FreeMarkerManagerTest$1.class
+it\jacopo\www\generator\GeneratoreDiMetaClassTest$1.class
 it\jacopo\www\EngineTest.class

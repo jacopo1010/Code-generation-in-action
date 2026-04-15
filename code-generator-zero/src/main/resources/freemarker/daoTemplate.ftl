@@ -80,14 +80,22 @@
 <#assign tableName = resolveTableName(metaClass)>
 <#assign allFields = metaClass.fields?values>
 <#assign persistentFields = allFields?filter(field -> !field.collection && !field.relation)>
+<#assign relationPersistentFields = allFields?filter(field -> field.relation && !field.collection && !field.joinTableRequired && field.foreignKeyColumn?? && field.foreignKeyColumn?has_content)>
 <#assign idFieldCandidates = persistentFields?filter(field -> field.name == "id" || resolveColumnName(field) == "id")>
 <#assign idField = "">
 <#if idFieldCandidates?size gt 0>
     <#assign idField = idFieldCandidates[0]>
 </#if>
-<#assign nonIdFields = persistentFields?filter(field -> !(field.name == "id" || resolveColumnName(field) == "id"))>
+<#assign allPersistentFields = persistentFields + relationPersistentFields>
+<#assign nonIdFields = allPersistentFields?filter(field -> !(field.name == "id" || resolveColumnName(field) == "id"))>
 <#assign stringFields = nonIdFields?filter(field -> field.javaType == "String")>
 <#assign manyToOneFields = allFields?filter(field -> field.relation && field.relationType == "MANY_TO_ONE" && field.foreignKeyColumn?? && field.foreignKeyColumn?has_content)>
+<#assign relationTypesToImport = []>
+<#list relationPersistentFields as field>
+    <#if !relationTypesToImport?seq_contains(field.javaType)>
+        <#assign relationTypesToImport = relationTypesToImport + [field.javaType]>
+    </#if>
+</#list>
 <#assign usesTimestamp = persistentFields?filter(field -> field.javaType == "Timestamp")?size gt 0>
 <#assign usesDate = persistentFields?filter(field -> field.javaType == "Date")?size gt 0>
 <#assign usesTime = persistentFields?filter(field -> field.javaType == "Time")?size gt 0>
@@ -124,6 +132,9 @@ import java.time.LocalDateTime;
 
 import com.zaxxer.hikari.HikariDataSource;
 import ${modelPackage}.${entityName};
+<#list relationTypesToImport as relationType>
+import ${modelPackage}.${relationType};
+</#list>
 
 public class ${entityName}Dao extends GenericDaoImpl<${entityName}, <#if idField?has_content>${idField.javaType}<#else>Long</#if>> {
 
@@ -151,6 +162,10 @@ public class ${entityName}Dao extends GenericDaoImpl<${entityName}, <#if idField
 <#list persistentFields as field>
             "${resolveColumnName(field)}"<#if field_has_next>,</#if>
 </#list>
+<#if persistentFields?size gt 0 && relationPersistentFields?size gt 0>,</#if>
+<#list relationPersistentFields as field>
+            "${resolveColumnName(field)}"<#if field_has_next>,</#if>
+</#list>
         );
     }
 
@@ -176,7 +191,11 @@ public class ${entityName}Dao extends GenericDaoImpl<${entityName}, <#if idField
     protected void bindInsertParameters(PreparedStatement statement, ${entityName} entity) throws SQLException {
         <#if nonIdFields?size gt 0>
 <#list nonIdFields as field>
+<#if field.relation>
+        statement.${jdbcSetter(resolveRelationIdField(field)?has_content?then(resolveRelationIdField(field).javaType, "Long"))}(${field_index + 1}, entity.get${field.name?cap_first}().get${resolveRelationIdField(field)?has_content?then(resolveRelationIdField(field).name?cap_first, "Id")}());
+<#else>
         statement.${jdbcSetter(field.javaType)}(${field_index + 1}, entity.get${field.name?cap_first}());
+</#if>
 </#list>
         <#else>
         throw new UnsupportedOperationException("Nessun campo persistente disponibile per il salvataggio di ${entityName}");
@@ -187,7 +206,11 @@ public class ${entityName}Dao extends GenericDaoImpl<${entityName}, <#if idField
     protected void bindUpdateParameters(PreparedStatement statement, ${entityName} entity) throws SQLException {
         <#if idField?has_content && nonIdFields?size gt 0>
 <#list nonIdFields as field>
+<#if field.relation>
+        statement.${jdbcSetter(resolveRelationIdField(field)?has_content?then(resolveRelationIdField(field).javaType, "Long"))}(${field_index + 1}, entity.get${field.name?cap_first}().get${resolveRelationIdField(field)?has_content?then(resolveRelationIdField(field).name?cap_first, "Id")}());
+<#else>
         statement.${jdbcSetter(field.javaType)}(${field_index + 1}, entity.get${field.name?cap_first}());
+</#if>
 </#list>
         this.setIdParameter(statement, ${nonIdFields?size + 1}, entity.get${idField.name?cap_first}());
         <#else>
@@ -227,6 +250,20 @@ public class ${entityName}Dao extends GenericDaoImpl<${entityName}, <#if idField
         ${entityName} entity = new ${entityName}();
 <#list persistentFields as field>
         entity.set${field.name?cap_first}(resultSet.${resultSetGetter(field.javaType)}("${resolveColumnName(field)}"<#if resultSetGetter(field.javaType) == "getObject" && field.javaType != "String">, ${field.javaType}.class</#if>));
+</#list>
+<#list relationPersistentFields as field>
+        <#assign relationIdField = resolveRelationIdField(field)>
+        <#assign relationIdType = "Long">
+        <#assign relationIdGetter = "getLong">
+        <#assign relationIdSetter = "Id">
+        <#if relationIdField?has_content>
+            <#assign relationIdType = relationIdField.javaType>
+            <#assign relationIdGetter = resultSetGetter(relationIdType)>
+            <#assign relationIdSetter = relationIdField.name?cap_first>
+        </#if>
+        ${field.javaType} ${field.name} = new ${field.javaType}();
+        ${field.name}.set${relationIdSetter}(resultSet.${relationIdGetter}("${resolveColumnName(field)}"<#if relationIdGetter == "getObject" && relationIdType != "String">, ${relationIdType}.class</#if>));
+        entity.set${field.name?cap_first}(${field.name});
 </#list>
         return entity;
     }

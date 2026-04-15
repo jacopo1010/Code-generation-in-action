@@ -71,6 +71,7 @@ public class Engine {
 			this.createModel(metaClasses, path);
 			this.createDao(metaClasses, path);
 			this.createService(metaClasses, path);
+			this.createController(metaClasses, path);
 			return metaClasses;
 		} else {
 			throw new IllegalArgumentException("Devi inserire " + PropertiesCostanti.ORM);
@@ -80,10 +81,10 @@ public class Engine {
 	
 	private void createModel(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
 		Properties properties = this.loader.getApplicationProperties();
-		String output = properties.getProperty(PropertiesCostanti.MODEL_OUTPUT_PATH);
+		String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
 		String packageName = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
 		this.marker.generateModel(packageName, metaClasses,
-				FileUtil.resolveConfiguredPath(applicationPropertiesPath, output));
+				FileUtil.resolveJavaOutputPath(applicationPropertiesPath, output));
 	}
   
 	private void createSchemaSql(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
@@ -93,14 +94,16 @@ public class Engine {
 
 	private void createDao(Map<String,MetaClass> metaClasses, String applicationPropertiesPath) {
 		Properties properties = this.loader.getApplicationProperties();
+		String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
 		String packageDao = properties.getProperty(PropertiesCostanti.DAO_OUTPUT_PACKAGE);
 		String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
 		this.marker.generateDao(packageModel, packageDao, metaClasses,
-				FileUtil.resolveDaoOutputPath(applicationPropertiesPath, this.loader));
+				FileUtil.resolveJavaOutputPath(applicationPropertiesPath, output));
 	}
 
 	private void createService(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
 		Properties properties = this.loader.getApplicationProperties();
+		String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
 		String packageDao = properties.getProperty(PropertiesCostanti.DAO_OUTPUT_PACKAGE);
 		String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
 		String packageService = properties.getProperty(PropertiesCostanti.SERVICE_OUTPUT_PACKAGE);
@@ -108,6 +111,19 @@ public class Engine {
 			packageService = packageDao.replace(".dao", ".service");
 		}
 		this.marker.generateService(packageModel, packageDao, packageService, metaClasses,
-				FileUtil.resolveServiceOutputPath(applicationPropertiesPath, this.loader));
+				FileUtil.resolveJavaOutputPath(applicationPropertiesPath, output));
+	}
+
+	private void createController(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
+		Properties properties = this.loader.getApplicationProperties();
+		String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
+		String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
+		String packageService = properties.getProperty(PropertiesCostanti.SERVICE_OUTPUT_PACKAGE);
+		String packageController = properties.getProperty(PropertiesCostanti.CONTROLLER_OUTPUT_PACKAGE);
+		if (packageController == null || packageController.trim().isEmpty()) {
+			packageController = packageService.replace(".service", ".controller");
+		}
+		this.marker.generateController(packageModel, packageService, packageController, metaClasses,
+				FileUtil.resolveJavaOutputPath(applicationPropertiesPath, output));
 	}
 }

@@ -2,9 +2,6 @@ package it.jacopo.www;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
-
-import it.jacopo.www.loader.CaricatoreDiFile;
 import it.jacopo.www.loader.PropertiesCostanti;
 
 public class FileUtil {
@@ -28,36 +25,13 @@ public class FileUtil {
 
 		return propertiesDirectory.resolve(configured).normalize().toString();
 	}
-	public static String getConfiguredProperty(String primaryKey, String fallbackKey, CaricatoreDiFile loader) {
-		Properties properties = loader.getApplicationProperties();
-		String value = properties.getProperty(primaryKey);
-		if (value == null || value.trim().isEmpty()) {
-			return properties.getProperty(fallbackKey);
+
+	public static String resolveJavaOutputPath(String applicationPropertiesPath, String configuredPath) {
+		if (configuredPath == null || configuredPath.trim().isEmpty()) {
+			throw new IllegalArgumentException(
+					"Definire nell'application.properties la proprietà " + PropertiesCostanti.JAVA_OUTPUT_PATH);
 		}
-		return value;
-	}
-	
-	
-	public static String resolveDaoOutputPath(String applicationPropertiesPath, CaricatoreDiFile loader) {
-		String outputDao = getConfiguredProperty(
-				PropertiesCostanti.DAO_OUTPUT_PATH,
-				PropertiesCostanti.MODEL_OUTPUT_PATH,
-				loader);
-		return resolveConfiguredPath(applicationPropertiesPath, outputDao);
-	}
-	
-	public static String resolveServiceOutputPath(String applicationPropertiesPath, CaricatoreDiFile loader) {
-		String outputService = getConfiguredProperty(
-				PropertiesCostanti.SERVICE_OUTPUT_PATH,
-				PropertiesCostanti.DAO_OUTPUT_PATH,
-				loader);
-		if (outputService == null || outputService.trim().isEmpty()) {
-			outputService = getConfiguredProperty(
-					PropertiesCostanti.SERVICE_OUTPUT_PATH,
-					PropertiesCostanti.MODEL_OUTPUT_PATH,
-					loader);
-		}
-		return resolveConfiguredPath(applicationPropertiesPath, outputService);
+		return resolveConfiguredPath(applicationPropertiesPath, configuredPath);
 	}
 	
 } 

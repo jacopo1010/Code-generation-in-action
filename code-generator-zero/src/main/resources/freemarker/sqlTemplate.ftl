@@ -42,6 +42,14 @@
     <#return "VARCHAR(255)">
 </#function>
 
+<#function resolveColumnDefinition field>
+    <#assign sqlType = resolveSqlType(field)>
+    <#if resolveColumnName(field) == "id" && sqlType == "BIGINT">
+        <#return sqlType + " AUTO_INCREMENT">
+    </#if>
+    <#return sqlType>
+</#function>
+
 <#assign emittedJoinTables = []>
 <#list metaClasses?values as metaClass>
 <#assign tableName = resolveTableName(metaClass)>
@@ -54,7 +62,7 @@
 
 CREATE TABLE IF NOT EXISTS ${tableName} (
 <#list simpleFields as field>
-    ${resolveColumnName(field)} ${resolveSqlType(field)}<#if field.required> NOT NULL</#if><#if field_has_next || foreignKeyFields?size gt 0 || hasPrimaryKey>,</#if>
+    ${resolveColumnName(field)} ${resolveColumnDefinition(field)}<#if field.required> NOT NULL</#if><#if field_has_next || foreignKeyFields?size gt 0 || hasPrimaryKey>,</#if>
 </#list>
 <#list foreignKeyFields as field>
     ${resolveColumnName(field)} BIGINT<#if field.required> NOT NULL</#if><#if field_has_next || hasPrimaryKey>,</#if>

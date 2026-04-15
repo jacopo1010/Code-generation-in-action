@@ -26,6 +26,7 @@ public class FreeMarkerManager {
 	private static final String GENERIC_DAO_IMPL_TEMPLATE_NAME = "freemarker/genericDaoImplTemplate.ftl";
 	private static final String DAO_TEMPLATE_NAME = "freemarker/daoTemplate.ftl";
 	private static final String SERVICE_TEMPLATE_NAME = "freemarker/serviceTemplate.ftl";
+	private static final String CONTROLLER_TEMPLATE_NAME = "freemarker/controllerTemplate.ftl";
 	private Configuration conf;
 	private IO io;
 
@@ -143,6 +144,33 @@ public class FreeMarkerManager {
 			}
 		} catch (IOException | TemplateException e) {
 			throw new RuntimeException("Errore durante la generazione dei service", e);
+		}
+	}
+
+	public void generateController(String packageModel, String packageService, String packageController,
+			Map<String, MetaClass> metaClasses, String outputRoot) {
+		try {
+			this.validateOutputRoot(outputRoot);
+			this.validateMetaClasses(metaClasses);
+			this.validatePackage(packageModel);
+			this.validatePackage(packageService);
+			this.validatePackage(packageController);
+
+			File outputDirectory = this.prepareOutputDirectory(outputRoot, packageController);
+			for (MetaClass metaClass : metaClasses.values()) {
+				Map<String, Object> data = new HashMap<String, Object>();
+				data.put("metaClass", metaClass);
+				data.put("packageModel", packageModel);
+				data.put("packageService", packageService);
+				data.put("packageController", packageController);
+				data.put("metaClasses", metaClasses);
+
+				File destination = new File(outputDirectory, metaClass.getName() + "Controller.java");
+				this.renderTemplateToFile(CONTROLLER_TEMPLATE_NAME, data, destination);
+				this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
+			}
+		} catch (IOException | TemplateException e) {
+			throw new RuntimeException("Errore durante la generazione dei controller", e);
 		}
 	}
 
