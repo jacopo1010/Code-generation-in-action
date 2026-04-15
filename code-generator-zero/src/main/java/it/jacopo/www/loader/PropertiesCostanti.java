@@ -8,7 +8,10 @@ public class PropertiesCostanti {
 	public static final String ORM = "generator.hibernate.enable";
     public static final String PACKAGE_MODEL ="generator.model.package"; 
     public static final String SQL_SCHEMA_PATH = "generator.sql.output";
-  
+    public static final String DAO_OUTPUT_PACKAGE = "generator.dao.package";
+    public static final String DAO_OUTPUT_PATH = "generator.dao.output.path";
+    public static final String SERVICE_OUTPUT_PACKAGE = "generator.service.package";
+    public static final String SERVICE_OUTPUT_PATH = "generator.service.output.path";
 	
 	/***
  domain.model.path=C:/project/models/domain.xml
@@ -18,5 +21,6 @@ generator.backend.enabled=true
 generator.frontend.metadata.enabled=true
 generator.sql.enabled=true
 base.package=org.jacopo.generated
+generator.dao.output.path=src/main/java
 	 */
 }

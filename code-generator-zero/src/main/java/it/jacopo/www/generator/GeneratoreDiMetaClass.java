@@ -46,9 +46,10 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 			this.metaDati.clear();
 			Map<String, String> dataTypes = this.extractDataTypes(doc);
 			List<Element> classes = this.extractClassElements(doc);
+			List<Element> associations = this.extractAssociationElements(doc);
 
 			for (Element classElement : classes) {
-				MetaClass metaClass = this.buildMetaClass(classElement, dataTypes, classes);
+				MetaClass metaClass = this.buildMetaClass(classElement, dataTypes, classes, associations);
 				this.metaDati.put(metaClass.getName(), metaClass);
 			}
 			return new LinkedHashMap<String, MetaClass>(this.metaDati);
@@ -88,6 +89,12 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		this.collectClasses(doc.getDocumentElement(), classes);
 		return classes;
 	}
+	
+	private List<Element> extractAssociationElements(Document doc) {
+		List<Element> associations = new ArrayList<Element>();
+		this.collectAssociations(doc.getDocumentElement(), associations);
+		return associations;
+	}
 
 	private void collectClasses(Element parent, List<Element> classes) {
 		if ("uml:Class".equals(this.attr(parent, "xmi:type"))) {
@@ -99,8 +106,20 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 			this.collectClasses(child, classes);
 		}
 	}
+	
+	private void collectAssociations(Element parent, List<Element> associations) {
+		if ("uml:Association".equals(this.attr(parent, "xmi:type"))) {
+			associations.add(parent);
+		}
 
-	private MetaClass buildMetaClass(Element classElement, Map<String, String> dataTypes, List<Element> classes) {
+		List<Element> children = this.directChildren(parent);
+		for (Element child : children) {
+			this.collectAssociations(child, associations);
+		}
+	}
+
+	private MetaClass buildMetaClass(Element classElement, Map<String, String> dataTypes, List<Element> classes,
+			List<Element> associations) {
 		MetaClass metaClass = new MetaClass();
 		metaClass.setId(this.attr(classElement, "xmi:id"));
 		metaClass.setName(this.attr(classElement, "name"));
@@ -119,9 +138,8 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 			metaClass.addField(metaField);
 		}
 
-		List<Element> associations = this.directChildrenByName(classElement, "ownedMember");
 		for (Element association : associations) {
-			if ("uml:Association".equals(this.attr(association, "xmi:type"))) {
+			if (this.isAssociationOwnedByClass(association, metaClass, classes)) {
 				List<MetaField> relationFields = this.buildAssociationFields(association, metaClass, classes);
 				for (MetaField relationField : relationFields) {
 					metaClass.addField(relationField);
@@ -130,6 +148,18 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		}
 
 		return metaClass;
+	}
+	
+	private boolean isAssociationOwnedByClass(Element association, MetaClass ownerClass, List<Element> classes) {
+		List<Element> ownedEnds = this.directChildrenByName(association, "ownedEnd");
+		for (Element ownedEnd : ownedEnds) {
+			String ownerTypeId = this.attr(ownedEnd, "type");
+			String ownerTypeName = this.resolveClassName(ownerTypeId, classes);
+			if (ownerClass.getName().equals(ownerTypeName)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private MetaField buildAttribute(Element attribute, Map<String, String> dataTypes, List<Element> classes) {

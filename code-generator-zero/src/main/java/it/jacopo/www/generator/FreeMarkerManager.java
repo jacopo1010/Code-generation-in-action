@@ -22,6 +22,10 @@ public class FreeMarkerManager {
 
 	private static final String MODEL_TEMPLATE_NAME = "freemarker/modelTemplate.ftl";
 	private static final String SQL_TEMPLATE_NAME = "freemarker/sqlTemplate.ftl";
+	private static final String GENERIC_DAO_TEMPLATE_NAME = "freemarker/genericDaoTemplate.ftl";
+	private static final String GENERIC_DAO_IMPL_TEMPLATE_NAME = "freemarker/genericDaoImplTemplate.ftl";
+	private static final String DAO_TEMPLATE_NAME = "freemarker/daoTemplate.ftl";
+	private static final String SERVICE_TEMPLATE_NAME = "freemarker/serviceTemplate.ftl";
 	private Configuration conf;
 	private IO io;
 
@@ -32,41 +36,145 @@ public class FreeMarkerManager {
 		this.io = io;
 	}
 
-	public void generateModel(String packageModel,Map<String, MetaClass> metaClasses, String outputRoot) {
+	public void generateModel(String packageModel, Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
-			if (outputRoot == null || outputRoot.trim().isEmpty()) {
-				throw new IllegalArgumentException("Definire nell'application.properties la cartella di output");
-			}
-			if (metaClasses == null || metaClasses.isEmpty()) {
-				throw new IllegalArgumentException("Nessuna meta-classe disponibile per la generazione");
-			}
+			this.validateOutputRoot(outputRoot);
+			this.validateMetaClasses(metaClasses);
 
-			File outputDirectory = this.resolveOutputDirectory(outputRoot, packageModel);
-			if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
-				throw new IOException("Impossibile creare la cartella di output: " + outputDirectory.getAbsolutePath());
-			}
-			Template template = conf.getTemplate(MODEL_TEMPLATE_NAME);
+			File outputDirectory = this.prepareOutputDirectory(outputRoot, packageModel);
 			for (MetaClass metaClass : metaClasses.values()) {
-				String nomeFile = metaClass.getName() + ".java";
-				File fileDestinazione = new File(outputDirectory, nomeFile);
-				Map<String, Object> dati = new HashMap<String, Object>();
-				dati.put("metaClass", metaClass);
-                dati.put("packageName", packageModel);
-				
-				try (Writer writer = new OutputStreamWriter(new FileOutputStream(fileDestinazione), StandardCharsets.UTF_8)) {
-					template.process(dati, writer);
-				}
-				io.stampaMessaggio("Generato: " + fileDestinazione.getAbsolutePath());
+				Map<String, Object> data = new HashMap<String, Object>();
+				data.put("metaClass", metaClass);
+				data.put("packageName", packageModel);
+
+				File destination = new File(outputDirectory, metaClass.getName() + ".java");
+				this.renderTemplateToFile(MODEL_TEMPLATE_NAME, data, destination);
+				this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
 			}
-			io.stampaMessaggio("Generazione completata con successo!");
+			this.io.stampaMessaggio("Generazione completata con successo!");
 		} catch (IOException | TemplateException e) {
 			throw new RuntimeException("Errore durante la generazione dei model", e);
 		}
 	}
 
-	private File resolveOutputDirectory(String outputRoot, String packageModel) {
+	public void generateSchema(Map<String, MetaClass> metaClasses, String outputRoot) {
+		try {
+			this.validateOutputRoot(outputRoot);
+			this.validateMetaClasses(metaClasses);
+
+			Path outputPath = Paths.get(outputRoot);
+			if (Files.isDirectory(outputPath)) {
+				throw new RuntimeException("Il path configurato punta a una directory: " + outputPath);
+			}
+			if (outputPath.getParent() != null) {
+				Files.createDirectories(outputPath.getParent());
+			}
+			String fileName = outputPath.getFileName().toString();
+			if (!fileName.toLowerCase().endsWith(".sql")) {
+				throw new RuntimeException("Il file configurato non è un formato sql valido: " + outputPath);
+			}
+
+			Map<String, Object> data = new HashMap<String, Object>();
+			data.put("metaClasses", metaClasses);
+
+			File destination = outputPath.toFile();
+			this.renderTemplateToFile(SQL_TEMPLATE_NAME, data, destination);
+			this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
+			this.io.stampaMessaggio("Generazione completata con successo!");
+		} catch (IOException | TemplateException e) {
+			throw new RuntimeException("Errore durante la generazione dello schema sql", e);
+		}
+	}
+
+	public void generateDao(String packageModel, String packageDao, Map<String, MetaClass> metaClasses, String outputRoot) {
+		try {
+			this.validateOutputRoot(outputRoot);
+			this.validateMetaClasses(metaClasses);
+			this.validatePackage(packageDao);
+
+			File outputDirectory = this.prepareOutputDirectory(outputRoot, packageDao);
+			Map<String, Object> baseData = new HashMap<String, Object>();
+			baseData.put("packageDao", packageDao);
+
+			File genericDaoDestination = new File(outputDirectory, "GenericDao.java");
+			this.renderTemplateToFile(GENERIC_DAO_TEMPLATE_NAME, baseData, genericDaoDestination);
+			this.io.stampaMessaggio("Generato: " + genericDaoDestination.getAbsolutePath());
+
+			File genericDaoImplDestination = new File(outputDirectory, "GenericDaoImpl.java");
+			this.renderTemplateToFile(GENERIC_DAO_IMPL_TEMPLATE_NAME, baseData, genericDaoImplDestination);
+			this.io.stampaMessaggio("Generato: " + genericDaoImplDestination.getAbsolutePath());
+
+			for (MetaClass metaClass : metaClasses.values()) {
+				Map<String, Object> data = new HashMap<String, Object>();
+				data.put("metaClass", metaClass);
+				data.put("packageDao", packageDao);
+				data.put("modelPackage", packageModel);
+				data.put("metaClasses", metaClasses);
+
+				File destination = new File(outputDirectory, metaClass.getName() + "Dao.java");
+				this.renderTemplateToFile(DAO_TEMPLATE_NAME, data, destination);
+				this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
+			}
+		} catch (IOException | TemplateException e) {
+			throw new RuntimeException("Errore durante la generazione dei dao", e);
+		}
+	}
+
+	public void generateService(String packageModel, String packageDao, String packageService, Map<String, MetaClass> metaClasses, String outputRoot) {
+		try {
+			this.validateOutputRoot(outputRoot);
+			this.validateMetaClasses(metaClasses);
+			this.validatePackage(packageModel);
+			this.validatePackage(packageDao);
+			this.validatePackage(packageService);
+
+			File outputDirectory = this.prepareOutputDirectory(outputRoot, packageService);
+			for (MetaClass metaClass : metaClasses.values()) {
+				Map<String, Object> data = new HashMap<String, Object>();
+				data.put("metaClass", metaClass);
+				data.put("packageModel", packageModel);
+				data.put("packageDao", packageDao);
+				data.put("packageService", packageService);
+				data.put("metaClasses", metaClasses);
+
+				File destination = new File(outputDirectory, metaClass.getName() + "Service.java");
+				this.renderTemplateToFile(SERVICE_TEMPLATE_NAME, data, destination);
+				this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
+			}
+		} catch (IOException | TemplateException e) {
+			throw new RuntimeException("Errore durante la generazione dei service", e);
+		}
+	}
+
+	private void validateOutputRoot(String outputRoot) {
+		if (outputRoot == null || outputRoot.trim().isEmpty()) {
+			throw new IllegalArgumentException("Definire nell'application.properties la cartella di output");
+		}
+	}
+
+	private void validateMetaClasses(Map<String, MetaClass> metaClasses) {
+		if (metaClasses == null || metaClasses.isEmpty()) {
+			throw new IllegalArgumentException("Nessuna meta-classe disponibile per la generazione");
+		}
+	}
+
+	private void validatePackage(String packageName) {
+		if (packageName == null || packageName.trim().isEmpty()) {
+			throw new IllegalArgumentException("Definire nell'application.properties il package di output");
+		}
+	}
+
+	private File prepareOutputDirectory(String outputRoot, String packageName) throws IOException {
+		File outputDirectory = this.resolveOutputDirectory(outputRoot, packageName);
+		if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
+			throw new IOException("Impossibile creare la cartella di output: " + outputDirectory.getAbsolutePath());
+		}
+		return outputDirectory;
+	}
+
+	private File resolveOutputDirectory(String outputRoot, String packageName) {
 		File root = new File(outputRoot);
-		String packagePath = packageModel.replace('.', File.separatorChar);
+		String packagePath = packageName.replace('.', File.separatorChar);
 		String normalizedRootPath = this.normalizePath(root.getPath());
 		String normalizedPackagePath = this.normalizePath(packagePath);
 		if (normalizedRootPath.endsWith(normalizedPackagePath)) {
@@ -78,42 +186,17 @@ public class FreeMarkerManager {
 	private String normalizePath(String path) {
 		return path.replace('\\', '/').replaceAll("/+", "/").replaceAll("/$", "");
 	}
-	
-	public void generateSchema(Map<String, MetaClass> metaClasses, String outputRoot) {
-		try {
-			if (outputRoot == null || outputRoot.trim().isEmpty()) {
-				throw new IllegalArgumentException("Definire nell'application.properties la cartella di output");
-			}
-			if (metaClasses == null || metaClasses.isEmpty()) {
-				throw new IllegalArgumentException("Nessuna meta-classe disponibile per la generazione");
-			}
-			
-			Path p = Paths.get(outputRoot);
-			if (Files.isDirectory(p)) {
-				throw new RuntimeException("Il path configurato punta a una directory: " + p);
-			}
-			if (p.getParent() != null) {
-				Files.createDirectories(p.getParent());
-			}
-			String nomeFile = p.getFileName().toString();
-			if(!nomeFile.toLowerCase().endsWith(".sql")) {
-				throw new RuntimeException("Il file configurato non è un formato sql valido: " + p);
-			}
 
-			Template template = conf.getTemplate(SQL_TEMPLATE_NAME);
-			Map<String, Object> dati = new HashMap<String, Object>();
-			dati.put("metaClasses", metaClasses);
+	private void renderTemplateToFile(String templateName, Map<String, Object> data, File destination)
+			throws IOException, TemplateException {
+		Template template = this.conf.getTemplate(templateName);
+		this.renderTemplateToFile(template, data, destination);
+	}
 
-			File fileDestinazione = p.toFile();
-			try (Writer writer = new OutputStreamWriter(new FileOutputStream(fileDestinazione), StandardCharsets.UTF_8)) {
-				template.process(dati, writer);
-			}
-			io.stampaMessaggio("Generato: " + fileDestinazione.getAbsolutePath());
-			
-			io.stampaMessaggio("Generazione completata con successo!");
-		}catch (IOException | TemplateException e) {
-			throw new RuntimeException("Errore durante la generazione dello schema sql", e);
+	private void renderTemplateToFile(Template template, Map<String, Object> data, File destination)
+			throws IOException, TemplateException {
+		try (Writer writer = new OutputStreamWriter(new FileOutputStream(destination), StandardCharsets.UTF_8)) {
+			template.process(data, writer);
 		}
 	}
-  
 }

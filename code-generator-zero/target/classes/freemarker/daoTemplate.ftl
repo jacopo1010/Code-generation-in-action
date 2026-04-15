@@ -61,8 +61,21 @@
     </#switch>
 </#function>
 
-<#assign packageDao = packageDao!((packageName!"jacopo.with.develop.model")?replace(".model", ".dao"))>
-<#assign modelPackage = modelPackage!(packageName!"jacopo.with.develop.model")>
+<#function resolveRelationIdField field>
+    <#if metaClasses?? && metaClasses[field.javaType]??>
+        <#assign targetMetaClass = metaClasses[field.javaType]>
+        <#assign targetFields = targetMetaClass.fields?values>
+        <#assign targetPersistentFields = targetFields?filter(candidate -> !candidate.collection && !candidate.relation)>
+        <#assign targetIdFields = targetPersistentFields?filter(candidate -> candidate.name == "id" || resolveColumnName(candidate) == "id")>
+        <#if targetIdFields?size gt 0>
+            <#return targetIdFields[0]>
+        </#if>
+    </#if>
+    <#return "">
+</#function>
+
+<#assign packageDao = packageDao!"jacopo.with.develop.dao">
+<#assign modelPackage = modelPackage!(packageDao?replace(".dao", ".model"))>
 <#assign entityName = metaClass.name>
 <#assign tableName = resolveTableName(metaClass)>
 <#assign allFields = metaClass.fields?values>
@@ -74,6 +87,7 @@
 </#if>
 <#assign nonIdFields = persistentFields?filter(field -> !(field.name == "id" || resolveColumnName(field) == "id"))>
 <#assign stringFields = nonIdFields?filter(field -> field.javaType == "String")>
+<#assign manyToOneFields = allFields?filter(field -> field.relation && field.relationType == "MANY_TO_ONE" && field.foreignKeyColumn?? && field.foreignKeyColumn?has_content)>
 <#assign usesTimestamp = persistentFields?filter(field -> field.javaType == "Timestamp")?size gt 0>
 <#assign usesDate = persistentFields?filter(field -> field.javaType == "Date")?size gt 0>
 <#assign usesTime = persistentFields?filter(field -> field.javaType == "Time")?size gt 0>
@@ -83,13 +97,11 @@
 
 package ${packageDao};
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 <#if usesTimestamp>
 import java.sql.Timestamp;
@@ -113,172 +125,110 @@ import java.time.LocalDateTime;
 import com.zaxxer.hikari.HikariDataSource;
 import ${modelPackage}.${entityName};
 
-public class ${entityName}Dao {
-
-    private HikariDataSource dataSource;
+public class ${entityName}Dao extends GenericDaoImpl<${entityName}, <#if idField?has_content>${idField.javaType}<#else>Long</#if>> {
 
     public ${entityName}Dao(HikariDataSource dataSource) {
-        this.dataSource = dataSource;
+        super(dataSource, ${entityName}.class);
     }
 
-<#if idField?has_content>
-    public ${entityName} findById(${idField.javaType} id) throws SQLException {
-        if (id == null) {
-            throw new IllegalArgumentException("L'id passato deve essere valorizzato");
-        }
-
-        String sql = "SELECT * FROM ${tableName} WHERE ${resolveColumnName(idField)} = ?";
-
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.${jdbcSetter(idField.javaType)}(1, id);
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-                ${entityName} entity = null;
-
-                if (resultSet.next()) {
-                    entity = mapRow(resultSet);
-                }
-
-                return entity;
-            }
-        }
-    }
-</#if>
-
-    public List<${entityName}> findAll() throws SQLException {
-        String sql = "SELECT * FROM ${tableName}";
-
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-
-            List<${entityName}> results = new ArrayList<${entityName}>();
-
-            while (resultSet.next()) {
-                results.add(mapRow(resultSet));
-            }
-
-            return results;
-        }
+    @Override
+    protected String getTableName() {
+        return "${tableName}";
     }
 
-    public ${entityName} save(${entityName} entity) throws SQLException {
-        if (entity == null) {
-            throw new IllegalArgumentException("L'entita passata deve essere valorizzata");
-        }
+    @Override
+    protected String getIdColumn() {
+        <#if idField?has_content>
+        return "${resolveColumnName(idField)}";
+        <#else>
+        throw new UnsupportedOperationException("Nessun campo id configurato per ${entityName}");
+        </#if>
+    }
 
-<#if nonIdFields?size gt 0>
-        String sql = "INSERT INTO ${tableName} (<#list nonIdFields as field>${resolveColumnName(field)}<#if field_has_next>, </#if></#list>) VALUES (<#list nonIdFields as field>?<#if field_has_next>, </#if></#list>)";
-
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
-<#list nonIdFields as field>
-            statement.${jdbcSetter(field.javaType)}(${field_index + 1}, entity.get${field.name?cap_first}());
+    @Override
+    protected Set<String> getPersistentFields() {
+        return Set.of(
+<#list persistentFields as field>
+            "${resolveColumnName(field)}"<#if field_has_next>,</#if>
 </#list>
+        );
+    }
 
-            int righeModificate = statement.executeUpdate();
-
-<#if idField?has_content>
-            if (righeModificate > 0) {
-                try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        entity.set${idField.name?cap_first}(generatedKeys.${resultSetGetter(idField.javaType)}(1<#if resultSetGetter(idField.javaType) == "getObject" && idField.javaType != "String">, ${idField.javaType}.class</#if>));
-                    }
-                }
-            }
-</#if>
-            return entity;
-        }
-<#else>
+    @Override
+    protected String getInsertSql() {
+        <#if nonIdFields?size gt 0>
+        return "INSERT INTO ${tableName} (<#list nonIdFields as field>${resolveColumnName(field)}<#if field_has_next>, </#if></#list>) VALUES (<#list nonIdFields as field>?<#if field_has_next>, </#if></#list>)";
+        <#else>
         throw new UnsupportedOperationException("Nessun campo persistente disponibile per il salvataggio di ${entityName}");
-</#if>
+        </#if>
     }
 
-<#if idField?has_content && nonIdFields?size gt 0>
-    public boolean update(${entityName} entity) throws SQLException {
-        if (entity == null) {
-            throw new IllegalArgumentException("L'entita passata deve essere valorizzata");
-        }
-        if (entity.get${idField.name?cap_first}() == null) {
-            throw new IllegalArgumentException("L'id dell'entita deve essere valorizzato");
-        }
+    @Override
+    protected String getUpdateSql() {
+        <#if idField?has_content && nonIdFields?size gt 0>
+        return "UPDATE ${tableName} SET <#list nonIdFields as field>${resolveColumnName(field)} = ?<#if field_has_next>, </#if></#list> WHERE ${resolveColumnName(idField)} = ?";
+        <#else>
+        throw new UnsupportedOperationException("Update non supportato per ${entityName}");
+        </#if>
+    }
 
-        String sql = "UPDATE ${tableName} SET <#list nonIdFields as field>${resolveColumnName(field)} = ?<#if field_has_next>, </#if></#list> WHERE ${resolveColumnName(idField)} = ?";
-
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
+    @Override
+    protected void bindInsertParameters(PreparedStatement statement, ${entityName} entity) throws SQLException {
+        <#if nonIdFields?size gt 0>
 <#list nonIdFields as field>
-            statement.${jdbcSetter(field.javaType)}(${field_index + 1}, entity.get${field.name?cap_first}());
+        statement.${jdbcSetter(field.javaType)}(${field_index + 1}, entity.get${field.name?cap_first}());
 </#list>
-            statement.${jdbcSetter(idField.javaType)}(${nonIdFields?size + 1}, entity.get${idField.name?cap_first}());
-
-            return statement.executeUpdate() > 0;
-        }
+        <#else>
+        throw new UnsupportedOperationException("Nessun campo persistente disponibile per il salvataggio di ${entityName}");
+        </#if>
     }
 
-    public boolean delete(${idField.javaType} id) throws SQLException {
-        if (id == null) {
-            throw new IllegalArgumentException("L'id passato deve essere valorizzato");
-        }
-
-        String sql = "DELETE FROM ${tableName} WHERE ${resolveColumnName(idField)} = ?";
-
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.${jdbcSetter(idField.javaType)}(1, id);
-            return statement.executeUpdate() > 0;
-        }
+    @Override
+    protected void bindUpdateParameters(PreparedStatement statement, ${entityName} entity) throws SQLException {
+        <#if idField?has_content && nonIdFields?size gt 0>
+<#list nonIdFields as field>
+        statement.${jdbcSetter(field.javaType)}(${field_index + 1}, entity.get${field.name?cap_first}());
+</#list>
+        this.setIdParameter(statement, ${nonIdFields?size + 1}, entity.get${idField.name?cap_first}());
+        <#else>
+        throw new UnsupportedOperationException("Update non supportato per ${entityName}");
+        </#if>
     }
 
-    public boolean existsById(${idField.javaType} id) throws SQLException {
-        if (id == null) {
-            throw new IllegalArgumentException("L'id passato deve essere valorizzato");
-        }
-
-        String sql = "SELECT 1 FROM ${tableName} WHERE ${resolveColumnName(idField)} = ?";
-
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.${jdbcSetter(idField.javaType)}(1, id);
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-                return resultSet.next();
-            }
-        }
-    }
-</#if>
-
-    public void deleteAll() throws SQLException {
-        String sql = "DELETE FROM ${tableName}";
-
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.executeUpdate();
-        }
+    @Override
+    protected void setIdParameter(PreparedStatement statement, int parameterIndex, <#if idField?has_content>${idField.javaType}<#else>Long</#if> id) throws SQLException {
+        <#if idField?has_content>
+        statement.${jdbcSetter(idField.javaType)}(parameterIndex, id);
+        <#else>
+        throw new UnsupportedOperationException("Nessun campo id configurato per ${entityName}");
+        </#if>
     }
 
-    public long count() throws SQLException {
-        String sql = "SELECT COUNT(*) FROM ${tableName}";
+    @Override
+    protected <#if idField?has_content>${idField.javaType}<#else>Long</#if> extractId(${entityName} entity) {
+        <#if idField?has_content>
+        return entity.get${idField.name?cap_first}();
+        <#else>
+        throw new UnsupportedOperationException("Nessun campo id configurato per ${entityName}");
+        </#if>
+    }
 
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-
-            long total = 0L;
-
-            if (resultSet.next()) {
-                total = resultSet.getLong(1);
-            }
-
-            return total;
+    @Override
+    protected void assignGeneratedId(${entityName} entity, ResultSet generatedKeys) throws SQLException {
+        <#if idField?has_content>
+        if (generatedKeys.next()) {
+            entity.set${idField.name?cap_first}(generatedKeys.${resultSetGetter(idField.javaType)}(1<#if resultSetGetter(idField.javaType) == "getObject" && idField.javaType != "String">, ${idField.javaType}.class</#if>));
         }
+        </#if>
+    }
+
+    @Override
+    protected ${entityName} mapRow(ResultSet resultSet) throws SQLException {
+        ${entityName} entity = new ${entityName}();
+<#list persistentFields as field>
+        entity.set${field.name?cap_first}(resultSet.${resultSetGetter(field.javaType)}("${resolveColumnName(field)}"<#if resultSetGetter(field.javaType) == "getObject" && field.javaType != "String">, ${field.javaType}.class</#if>));
+</#list>
+        return entity;
     }
 
 <#if stringFields?size gt 0>
@@ -291,14 +241,14 @@ public class ${entityName}Dao {
 
         String sql = "SELECT * FROM ${tableName} WHERE CONCAT(<#list stringFields as field>${resolveColumnName(field)}<#if field_has_next>, ' ', </#if></#list>) LIKE ?";
 
-        try (Connection connection = this.dataSource.getConnection();
+        try (java.sql.Connection connection = this.dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, "%" + keyword.trim() + "%");
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
-                    results.add(mapRow(resultSet));
+                    results.add(this.mapRow(resultSet));
                 }
             }
         }
@@ -306,46 +256,35 @@ public class ${entityName}Dao {
         return results;
     }
 </#if>
+<#list manyToOneFields as relationField>
 
-    public List<${entityName}> searchByField(String field, Object value) throws SQLException {
-        if (field == null || field.isBlank() || value == null) {
-            throw new IllegalArgumentException("Il campo e il valore devono essere valorizzati");
+    <#assign relationIdField = resolveRelationIdField(relationField)>
+    <#assign relationIdType = "Long">
+    <#if relationIdField?has_content>
+        <#assign relationIdType = relationIdField.javaType>
+    </#if>
+    public List<${entityName}> findBy${relationField.name?cap_first}Id(${relationIdType} ${relationField.name}Id) throws SQLException {
+        List<${entityName}> results = new ArrayList<${entityName}>();
+
+        if (${relationField.name}Id == null) {
+            return results;
         }
 
-        Set<String> allowedFields = Set.of(
-<#list persistentFields as field>
-            "${resolveColumnName(field)}"<#if field_has_next>,</#if>
-</#list>
-        );
+        String sql = "SELECT * FROM ${tableName} WHERE ${resolveColumnName(relationField)} = ?";
 
-        if (!allowedFields.contains(field)) {
-            throw new IllegalArgumentException("Campo non consentito: " + field);
-        }
-
-        String sql = "SELECT * FROM ${tableName} WHERE " + field + " = ?";
-
-        try (Connection connection = this.dataSource.getConnection();
+        try (java.sql.Connection connection = this.dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            statement.setObject(1, value);
+            statement.${jdbcSetter(relationIdType)}(1, ${relationField.name}Id);
 
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<${entityName}> results = new ArrayList<${entityName}>();
-
                 while (resultSet.next()) {
-                    results.add(mapRow(resultSet));
+                    results.add(this.mapRow(resultSet));
                 }
-
-                return results;
             }
         }
-    }
 
-    private ${entityName} mapRow(ResultSet resultSet) throws SQLException {
-        ${entityName} entity = new ${entityName}();
-<#list persistentFields as field>
-        entity.set${field.name?cap_first}(resultSet.${resultSetGetter(field.javaType)}("${resolveColumnName(field)}"<#if resultSetGetter(field.javaType) == "getObject" && field.javaType != "String">, ${field.javaType}.class</#if>));
-</#list>
-        return entity;
+        return results;
     }
+</#list>
 }

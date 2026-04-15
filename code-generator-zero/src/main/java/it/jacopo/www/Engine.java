@@ -1,10 +1,8 @@
 package it.jacopo.www;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import it.jacopo.www.generator.FreeMarkerManager;
 import it.jacopo.www.generator.GeneratoreDiEntita;
@@ -56,7 +54,8 @@ public class Engine {
 
 	public Map<String, MetaClass> generate(String path){
 		File xmlFile = this.loader.carica(path);
-		String orm = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.ORM);
+		Properties properties = this.loader.getApplicationProperties();
+		String orm = properties.getProperty(PropertiesCostanti.ORM);
 		if (orm == null || orm.isEmpty()) {
 			throw new RuntimeException(
 					"Il file application.properties è configurato male. " +
@@ -68,8 +67,10 @@ public class Engine {
 							+ PropertiesCostanti.ORM + "=false per generare i model Java.");
 		} else if ("false".equalsIgnoreCase(orm)) {
 			Map<String, MetaClass> metaClasses = this.metaCreator.generaMetaClass(xmlFile);
-			this.createModel(metaClasses, path);
 			this.createSchemaSql(metaClasses, path);
+			this.createModel(metaClasses, path);
+			this.createDao(metaClasses, path);
+			this.createService(metaClasses, path);
 			return metaClasses;
 		} else {
 			throw new IllegalArgumentException("Devi inserire " + PropertiesCostanti.ORM);
@@ -78,33 +79,35 @@ public class Engine {
 	
 	
 	private void createModel(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
-		String output = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.MODEL_OUTPUT_PATH);
-		String packageName = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.PACKAGE_MODEL);
-		this.marker.generateModel(packageName, metaClasses, this.resolveConfiguredPath(applicationPropertiesPath, output));
+		Properties properties = this.loader.getApplicationProperties();
+		String output = properties.getProperty(PropertiesCostanti.MODEL_OUTPUT_PATH);
+		String packageName = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
+		this.marker.generateModel(packageName, metaClasses,
+				FileUtil.resolveConfiguredPath(applicationPropertiesPath, output));
 	}
   
 	private void createSchemaSql(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
 		String output = this.loader.getApplicationProperties().getProperty(PropertiesCostanti.SQL_SCHEMA_PATH);
-		this.marker.generateSchema(metaClasses, this.resolveConfiguredPath(applicationPropertiesPath, output));
+		this.marker.generateSchema(metaClasses, FileUtil.resolveConfiguredPath(applicationPropertiesPath, output));
 	}
 
-	private String resolveConfiguredPath(String applicationPropertiesPath, String configuredPath) {
-		if (configuredPath == null || configuredPath.trim().isEmpty()) {
-			return configuredPath;
-		}
-        
-		configuredPath = configuredPath.trim();   
-		Path configured = Paths.get(configuredPath);
-		if (configured.isAbsolute()) {
-			return configured.normalize().toString();
-		}
+	private void createDao(Map<String,MetaClass> metaClasses, String applicationPropertiesPath) {
+		Properties properties = this.loader.getApplicationProperties();
+		String packageDao = properties.getProperty(PropertiesCostanti.DAO_OUTPUT_PACKAGE);
+		String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
+		this.marker.generateDao(packageModel, packageDao, metaClasses,
+				FileUtil.resolveDaoOutputPath(applicationPropertiesPath, this.loader));
+	}
 
-		Path propertiesFile = Paths.get(applicationPropertiesPath).toAbsolutePath().normalize();
-		Path propertiesDirectory = propertiesFile.getParent();
-		if (propertiesDirectory == null) {
-			return configured.normalize().toString();
+	private void createService(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
+		Properties properties = this.loader.getApplicationProperties();
+		String packageDao = properties.getProperty(PropertiesCostanti.DAO_OUTPUT_PACKAGE);
+		String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
+		String packageService = properties.getProperty(PropertiesCostanti.SERVICE_OUTPUT_PACKAGE);
+		if (packageService == null || packageService.trim().isEmpty()) {
+			packageService = packageDao.replace(".dao", ".service");
 		}
-
-		return propertiesDirectory.resolve(configured).normalize().toString();
+		this.marker.generateService(packageModel, packageDao, packageService, metaClasses,
+				FileUtil.resolveServiceOutputPath(applicationPropertiesPath, this.loader));
 	}
 }

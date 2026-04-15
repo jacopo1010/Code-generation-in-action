@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.519" tests="6" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="it.jacopo.www.EngineTest" time="0.027" tests="4" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="22"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -15,9 +15,9 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="IT"/>
     <property name="sun.boot.library.path" value="C:\Program Files\Java22\jdk-22.0.2+9\bin"/>
-    <property name="sun.java.command" value="C:\Users\Local_admin\AppData\Local\Temp\surefire6016220046065643297\surefirebooter-20260415180306220_3.jar C:\Users\Local_admin\AppData\Local\Temp\surefire6016220046065643297 2026-04-15T18-03-06_090-jvmRun1 surefire-20260415180306220_1tmp surefire_0-20260415180306220_2tmp"/>
+    <property name="sun.java.command" value="C:\Users\Local_admin\AppData\Local\Temp\surefire1325996136244454909\surefirebooter-20260415165146390_3.jar C:\Users\Local_admin\AppData\Local\Temp\surefire1325996136244454909 2026-04-15T16-51-46_252-jvmRun1 surefire-20260415165146390_1tmp surefire_0-20260415165146390_2tmp"/>
     <property name="jdk.debug" value="release"/>
-    <property name="test" value="GeneratoreDiMetaClassTest,FreeMarkerManagerTest"/>
+    <property name="test" value="EngineTest,FreeMarkerManagerTest"/>
     <property name="surefire.test.class.path" value="C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\target\test-classes;C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\target\classes;C:\Users\Local_admin\.m2\repository\junit\junit\3.8.1\junit-3.8.1.jar;C:\Users\Local_admin\.m2\repository\org\freemarker\freemarker\2.3.34\freemarker-2.3.34.jar;"/>
     <property name="sun.cpu.endian" value="little"/>
     <property name="user.home" value="C:\Users\Local_admin"/>
@@ -31,7 +31,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
-    <property name="surefire.real.class.path" value="C:\Users\Local_admin\AppData\Local\Temp\surefire6016220046065643297\surefirebooter-20260415180306220_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\Local_admin\AppData\Local\Temp\surefire1325996136244454909\surefirebooter-20260415165146390_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="22.0.2+9"/>
@@ -60,10 +60,8 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="66.0"/>
   </properties>
-  <testcase name="testGenerateServiceCreaPassThroughPerRelazioneManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.397"/>
-  <testcase name="testGenerateServiceConCostruttoreVuotoEInizializzazioneDao" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.023"/>
-  <testcase name="testNonDuplicaIlPackageSeOutputGiaAllineato" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.002"/>
-  <testcase name="testAggiungeIlPackageSeOutputEPuntatoAllaRoot" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.0"/>
-  <testcase name="testGenerateDaoUsaPackageDaoEImportModelCorretti" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.041"/>
-  <testcase name="testGenerateDaoCreaFinderPerRelazioneManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.034"/>
+  <testcase name="testServiceUsaIlPathDedicatoQuandoConfigurato" classname="it.jacopo.www.EngineTest" time="0.006"/>
+  <testcase name="testDaoUsaIlPathDedicatoQuandoConfigurato" classname="it.jacopo.www.EngineTest" time="0.0"/>
+  <testcase name="testDaoFaFallbackSulPathDeiModel" classname="it.jacopo.www.EngineTest" time="0.0"/>
+  <testcase name="testServiceFaFallbackSulPathDeiDao" classname="it.jacopo.www.EngineTest" time="0.0"/>
 </testsuite>
