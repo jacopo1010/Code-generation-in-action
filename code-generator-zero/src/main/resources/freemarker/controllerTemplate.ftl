@@ -104,7 +104,7 @@ public class ${entityName}Controller {
     @GET
     @Path("/search")
     public Response findByKeyword(@QueryParam("keyword") String keyword) throws SQLException {
-        if (keyword == null || keyword.isBlank()) {
+        if (keyword == null || keyword.isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
         return Response.ok(this.${entityName?uncap_first}Service.findByKeyword(keyword)).build();

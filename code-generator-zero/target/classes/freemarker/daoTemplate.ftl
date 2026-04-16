@@ -108,8 +108,10 @@ package ${packageDao};
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 <#if usesTimestamp>
 import java.sql.Timestamp;
@@ -158,7 +160,7 @@ public class ${entityName}Dao extends GenericDaoImpl<${entityName}, <#if idField
 
     @Override
     protected Set<String> getPersistentFields() {
-        return Set.of(
+        return new HashSet<String>(Arrays.asList(
 <#list persistentFields as field>
             "${resolveColumnName(field)}"<#if field_has_next>,</#if>
 </#list>
@@ -166,7 +168,7 @@ public class ${entityName}Dao extends GenericDaoImpl<${entityName}, <#if idField
 <#list relationPersistentFields as field>
             "${resolveColumnName(field)}"<#if field_has_next>,</#if>
 </#list>
-        );
+        ));
     }
 
     @Override

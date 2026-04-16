@@ -181,7 +181,7 @@ public abstract class GenericDaoImpl<T, ID> implements GenericDao<T, ID> {
 
     @Override
     public List<T> searchByField(String field, Object value) throws SQLException {
-        if (field == null || field.isBlank() || value == null) {
+        if (field == null || field.isEmpty() || value == null) {
             throw new IllegalArgumentException("Il campo e il valore devono essere valorizzati");
         }
         if (!this.getPersistentFields().contains(field)) {
