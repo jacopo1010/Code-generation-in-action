@@ -58,7 +58,7 @@ public class FreeMarkerManager {
 		}
 	}
 
-	public void generateSchema(Map<String, MetaClass> metaClasses, String outputRoot) {
+	public File generateSchema(Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
 			this.validateOutputRoot(outputRoot);
 			this.validateMetaClasses(metaClasses);
@@ -82,45 +82,13 @@ public class FreeMarkerManager {
 			this.renderTemplateToFile(SQL_TEMPLATE_NAME, data, destination);
 			this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
 			this.io.stampaMessaggio("Generazione completata con successo!");
+			return destination;
 		} catch (IOException | TemplateException e) {
 			throw new RuntimeException("Errore durante la generazione dello schema sql", e);
 		}
 	}
 
-	public void generateDao(String packageModel, String packageDao, Map<String, MetaClass> metaClasses, String outputRoot) {
-		try {
-			this.validateOutputRoot(outputRoot);
-			this.validateMetaClasses(metaClasses);
-			this.validatePackage(packageDao);
-
-			File outputDirectory = this.prepareOutputDirectory(outputRoot, packageDao);
-			Map<String, Object> baseData = new HashMap<String, Object>();
-			baseData.put("packageDao", packageDao);
-
-			File genericDaoDestination = new File(outputDirectory, "GenericDao.java");
-			this.renderTemplateToFile(GENERIC_DAO_TEMPLATE_NAME, baseData, genericDaoDestination);
-			this.io.stampaMessaggio("Generato: " + genericDaoDestination.getAbsolutePath());
-
-			File genericDaoImplDestination = new File(outputDirectory, "GenericDaoImpl.java");
-			this.renderTemplateToFile(GENERIC_DAO_IMPL_TEMPLATE_NAME, baseData, genericDaoImplDestination);
-			this.io.stampaMessaggio("Generato: " + genericDaoImplDestination.getAbsolutePath());
-
-			for (MetaClass metaClass : metaClasses.values()) {
-				Map<String, Object> data = new HashMap<String, Object>();
-				data.put("metaClass", metaClass);
-				data.put("packageDao", packageDao);
-				data.put("modelPackage", packageModel);
-				data.put("metaClasses", metaClasses);
-
-				File destination = new File(outputDirectory, metaClass.getName() + "Dao.java");
-				this.renderTemplateToFile(DAO_TEMPLATE_NAME, data, destination);
-				this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
-			}
-		} catch (IOException | TemplateException e) {
-			throw new RuntimeException("Errore durante la generazione dei dao", e);
-		}
-	}
-
+	
 	public void generateService(String packageModel, String packageDao, String packageService, Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
 			this.validateOutputRoot(outputRoot);
