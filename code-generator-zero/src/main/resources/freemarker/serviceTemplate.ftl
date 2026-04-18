@@ -32,8 +32,8 @@
 </#function>
 
 <#assign entityName = metaClass.name>
-<#assign packageModel = packageModel!(packageDao?replace(".dao", ".model"))>
-<#assign packageDao = packageDao!"jacopo.with.develop.dao">
+<#assign packageModel = packageModel!"jacopo.with.develop.model">
+<#assign packageRepository = packageRepository!"jacopo.with.develop.repository">
 <#assign packageService = packageService!"jacopo.with.develop.service">
 <#assign allFields = metaClass.fields?values>
 <#assign persistentFields = allFields?filter(field -> !field.collection && !field.relation)>
@@ -64,65 +64,105 @@
 
 package ${packageService};
 
-import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
 <#if hasTechnicalTimestampFields>
 import java.sql.Timestamp;
 </#if>
-import java.util.List;
-
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 
 import ${packageModel}.${entityName};
 <#list relationTypesToImport as relationType>
 import ${packageModel}.${relationType};
 </#list>
-import ${packageDao}.${entityName}Dao;
-import ${packageDao}.GenericDao;
+import ${packageRepository}.${entityName}RepositoryBase;
 <#list relationTypesToImport as relationType>
-import ${packageDao}.${relationType}Dao;
+import ${packageRepository}.${relationType}RepositoryBase;
 </#list>
 
-public class ${entityName}Service {
+public class ${entityName}ServiceBase {
 
-    private final HikariDataSource dataSource;
-    private final GenericDao<${entityName}, <#if idField?has_content>${idField.javaType}<#else>Long</#if>> dao;
+    protected final ${entityName}RepositoryBase repository;
 <#list manyToOneFields as relationField>
-    private final ${relationField.javaType}Dao ${relationField.javaType?uncap_first}Dao;
+    protected final ${relationField.javaType}RepositoryBase ${relationField.javaType?uncap_first}Repository;
 </#list>
 
-    public ${entityName}Service() {
-        HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl("jdbc:mysql://localhost:3306/${entityName?lower_case}");
-        hikariConfig.setUsername("root");
-        hikariConfig.setPassword("root");
-        hikariConfig.setMaximumPoolSize(10);
-        this.dataSource = new HikariDataSource(hikariConfig);
-        this.dao = new ${entityName}Dao(this.dataSource);
+    protected ${entityName}ServiceBase(${entityName}RepositoryBase repository<#list manyToOneFields as relationField>, ${relationField.javaType}RepositoryBase ${relationField.javaType?uncap_first}Repository</#list>) {
+        this.repository = repository;
 <#list manyToOneFields as relationField>
-        this.${relationField.javaType?uncap_first}Dao = new ${relationField.javaType}Dao(this.dataSource);
+        this.${relationField.javaType?uncap_first}Repository = ${relationField.javaType?uncap_first}Repository;
 </#list>
+    }
+
+    // -------------------------------------------------------------------------
+    // READ
+    // -------------------------------------------------------------------------
+
+    public List<${entityName}> findAll() {
+        return this.repository.findAll();
     }
 
 <#if idField?has_content>
-    public ${entityName} findById(${idField.javaType} id) throws SQLException {
-        return this.dao.findById(id);
+    public Optional<${entityName}> findById(${idField.javaType} id) {
+        return this.repository.findById(id);
     }
 
-    public boolean delete(${idField.javaType} id) throws SQLException {
-        return this.dao.delete(id);
-    }
-
-    public boolean existsById(${idField.javaType} id) throws SQLException {
-        return this.dao.existsById(id);
+    public boolean existsById(${idField.javaType} id) {
+        return this.repository.existsById(id);
     }
 </#if>
 
-    public List<${entityName}> findAll() throws SQLException {
-        return this.dao.findAll();
+    public long count() {
+        return this.repository.count();
     }
 
-    private void prepareForCreate(${entityName} entity) throws SQLException {
+<#if stringFields?size gt 0>
+    public List<${entityName}> findByKeyword(String keyword) {
+        return this.repository.findByKeyword(keyword);
+    }
+
+</#if>
+<#list manyToOneFields as relationField>
+    <#assign relationIdField = resolveRelationIdField(relationField)>
+    <#assign relationIdType = relationIdField?has_content?then(relationIdField.javaType, "Long")>
+    public List<${entityName}> findBy${relationField.name?cap_first}Id(${relationIdType} id) {
+        return this.repository.findBy${relationField.name?cap_first}Id(id);
+    }
+
+</#list>
+
+    // -------------------------------------------------------------------------
+    // WRITE
+    // -------------------------------------------------------------------------
+
+    public ${entityName} save(${entityName} entity) {
+        this.prepareForCreate(entity);
+        return this.repository.save(entity);
+    }
+
+    public boolean update(${entityName} entity) {
+        this.prepareForUpdate(entity);
+        return this.repository.update(entity);
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE
+    // -------------------------------------------------------------------------
+
+<#if idField?has_content>
+    public boolean delete(${idField.javaType} id) {
+        return this.repository.deleteById(id);
+    }
+
+</#if>
+    public void deleteAll() {
+        this.repository.deleteAll();
+    }
+
+    // -------------------------------------------------------------------------
+    // VALIDAZIONE
+    // -------------------------------------------------------------------------
+
+    private void prepareForCreate(${entityName} entity) {
         this.validateEntityForWrite(entity);
 <#if hasTechnicalTimestampFields>
         Timestamp now = new Timestamp(System.currentTimeMillis());
@@ -133,14 +173,14 @@ public class ${entityName}Service {
 </#if>
     }
 
-    private void prepareForUpdate(${entityName} entity) throws SQLException {
+    private void prepareForUpdate(${entityName} entity) {
         this.validateEntityForWrite(entity);
 <#if idField?has_content>
         if (entity.get${idField.name?cap_first}() == null) {
-            throw new IllegalArgumentException("Id obbligatorio");
+            throw new IllegalArgumentException("Id obbligatorio per l'aggiornamento di ${entityName}");
         }
 <#else>
-        throw new IllegalArgumentException("Id obbligatorio");
+        throw new UnsupportedOperationException("Update non supportato: nessun campo id in ${entityName}");
 </#if>
 <#if hasTechnicalTimestampFields>
         if (entity.get${creationTimestampField.name?cap_first}() == null) {
@@ -150,69 +190,29 @@ public class ${entityName}Service {
 </#if>
     }
 
-    private void validateEntityForWrite(${entityName} entity) throws SQLException {
+    private void validateEntityForWrite(${entityName} entity) {
         if (entity == null) {
             throw new IllegalArgumentException("${entityName} obbligatorio");
         }
 <#list manyToOneFields as relationField>
+    <#assign relIdField = resolveRelationIdField(relationField)>
+    <#assign relIdGetter = relIdField?has_content?then("get" + relIdField.name?cap_first + "()", "getId()")>
 
         ${relationField.javaType} ${relationField.name} = entity.get${relationField.name?cap_first}();
 <#if relationField.required>
-        if (${relationField.name} == null || ${relationField.name}.get${resolveRelationIdField(relationField)?has_content?then(resolveRelationIdField(relationField).name?cap_first, "Id")}() == null) {
-            throw new IllegalArgumentException("${relationField.javaType} associato obbligatorio");
+        if (${relationField.name} == null || ${relationField.name}.${relIdGetter} == null) {
+            throw new IllegalArgumentException("${relationField.javaType} associato obbligatorio per ${entityName}");
         }
 </#if>
         if (${relationField.name} != null) {
-            if (${relationField.name}.get${resolveRelationIdField(relationField)?has_content?then(resolveRelationIdField(relationField).name?cap_first, "Id")}() == null) {
-                throw new IllegalArgumentException("Id ${relationField.javaType} associato obbligatorio");
+            if (${relationField.name}.${relIdGetter} == null) {
+                throw new IllegalArgumentException("Id di ${relationField.javaType} associato obbligatorio");
             }
-            if (!this.${relationField.javaType?uncap_first}Dao.existsById(${relationField.name}.get${resolveRelationIdField(relationField)?has_content?then(resolveRelationIdField(relationField).name?cap_first, "Id")}())) {
-                throw new IllegalArgumentException("${relationField.javaType} associato non esistente: " + ${relationField.name}.get${resolveRelationIdField(relationField)?has_content?then(resolveRelationIdField(relationField).name?cap_first, "Id")}());
+            if (!this.${relationField.javaType?uncap_first}Repository.existsById(${relationField.name}.${relIdGetter})) {
+                throw new IllegalArgumentException("${relationField.javaType} associato non esistente: "
+                    + ${relationField.name}.${relIdGetter});
             }
         }
 </#list>
-    }
-
-    public ${entityName} save(${entityName} entity) throws SQLException {
-        this.prepareForCreate(entity);
-        return this.dao.save(entity);
-    }
-
-    public boolean update(${entityName} entity) throws SQLException {
-        this.prepareForUpdate(entity);
-        return this.dao.update(entity);
-    }
-
-    public void deleteAll() throws SQLException {
-        this.dao.deleteAll();
-    }
-
-    public long count() throws SQLException {
-        return this.dao.count();
-    }
-
-    public List<${entityName}> searchByField(String field, Object value) throws SQLException {
-        return this.dao.searchByField(field, value);
-    }
-
-<#if stringFields?size gt 0>
-    public List<${entityName}> findByKeyword(String keyword) throws SQLException {
-        return this.getDao().searchByKeyword(keyword);
-    }
-
-</#if>
-<#list manyToOneFields as relationField>
-    <#assign relationIdField = resolveRelationIdField(relationField)>
-    <#assign relationIdType = "Long">
-    <#if relationIdField?has_content>
-        <#assign relationIdType = relationIdField.javaType>
-    </#if>
-    public List<${entityName}> findBy${relationField.name?cap_first}Id(${relationIdType} ${relationField.name}Id) throws SQLException {
-        return this.getDao().findBy${relationField.name?cap_first}Id(${relationField.name}Id);
-    }
-
-</#list>
-    public ${entityName}Dao getDao() {
-        return (${entityName}Dao) this.dao;
     }
 }

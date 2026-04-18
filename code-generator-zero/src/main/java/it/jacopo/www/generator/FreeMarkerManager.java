@@ -21,12 +21,15 @@ import it.jacopo.www.model.MetaClass;
 public class FreeMarkerManager {
 
 	private static final String MODEL_TEMPLATE_NAME = "freemarker/modelTemplate.ftl";
+	private static final String MODEL_WRAPPER_TEMPLATE_NAME = "freemarker/modelWrapperTemplate.ftl";
 	private static final String SQL_TEMPLATE_NAME = "freemarker/sqlTemplate.ftl";
-	private static final String GENERIC_DAO_TEMPLATE_NAME = "freemarker/genericDaoTemplate.ftl";
-	private static final String GENERIC_DAO_IMPL_TEMPLATE_NAME = "freemarker/genericDaoImplTemplate.ftl";
-	private static final String DAO_TEMPLATE_NAME = "freemarker/daoTemplate.ftl";
 	private static final String SERVICE_TEMPLATE_NAME = "freemarker/serviceTemplate.ftl";
+	private static final String SERVICE_WRAPPER_TEMPLATE_NAME = "freemarker/serviceWrapperTemplate.ftl";
 	private static final String CONTROLLER_TEMPLATE_NAME = "freemarker/controllerTemplate.ftl";
+	private static final String CONTROLLER_WRAPPER_TEMPLATE_NAME = "freemarker/controllerWrapperTemplate.ftl";
+	private static final String REPOSITORY_TEMPLATE_NAME = "freemarker/repositoryTemplate.ftl";
+	private static final String REPOSITORY_WRAPPER_TEMPLATE_NAME = "freemarker/repositoryWrapperTemplate.ftl";
+
 	private Configuration conf;
 	private IO io;
 
@@ -48,9 +51,12 @@ public class FreeMarkerManager {
 				data.put("metaClass", metaClass);
 				data.put("packageName", packageModel);
 
-				File destination = new File(outputDirectory, metaClass.getName() + ".java");
-				this.renderTemplateToFile(MODEL_TEMPLATE_NAME, data, destination);
-				this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
+				File generatedDestination = new File(outputDirectory, metaClass.getName() + "Base.java");
+				this.renderTemplateToFile(MODEL_TEMPLATE_NAME, data, generatedDestination);
+				this.io.stampaMessaggio("Generato: " + generatedDestination.getAbsolutePath());
+
+				File wrapperDestination = new File(outputDirectory, metaClass.getName() + ".java");
+				this.renderTemplateToFileIfAbsent(MODEL_WRAPPER_TEMPLATE_NAME, data, wrapperDestination);
 			}
 			this.io.stampaMessaggio("Generazione completata con successo!");
 		} catch (IOException | TemplateException e) {
@@ -88,13 +94,42 @@ public class FreeMarkerManager {
 		}
 	}
 
+	public void generateRepository(String packageModel, String jooqPackage, String packageRepository,
+	        Map<String, MetaClass> metaClasses, String outputRoot) {
+	    try {
+	        this.validateOutputRoot(outputRoot);
+	        this.validateMetaClasses(metaClasses);
+
+	        File outputDirectory = this.prepareOutputDirectory(outputRoot, packageRepository);
+	        for (MetaClass metaClass : metaClasses.values()) {
+	            Map<String, Object> data = new HashMap<>();
+	            data.put("metaClass", metaClass);
+	            data.put("packageModel", packageModel);
+	            data.put("jooqPackage", jooqPackage);       // package Tables/Records
+	            data.put("packageRepository", packageRepository);
+	            data.put("metaClasses", metaClasses);
+
+	            File generatedDestination = new File(outputDirectory,
+	                    metaClass.getName() + "RepositoryBase.java");
+	            this.renderTemplateToFile(REPOSITORY_TEMPLATE_NAME, data, generatedDestination);
+	            this.io.stampaMessaggio("Generato: " + generatedDestination.getAbsolutePath());
+
+	            File wrapperDestination = new File(outputDirectory,
+	                    metaClass.getName() + "Repository.java");
+	            this.renderTemplateToFileIfAbsent(REPOSITORY_WRAPPER_TEMPLATE_NAME, data, wrapperDestination);
+
+	        }
+	    } catch (IOException | TemplateException e) {
+	        throw new RuntimeException("Errore generazione Repository", e);
+	    }
+	}
 	
-	public void generateService(String packageModel, String packageDao, String packageService, Map<String, MetaClass> metaClasses, String outputRoot) {
+	public void generateService(String packageModel, String packageRepository, String packageService, Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
 			this.validateOutputRoot(outputRoot);
 			this.validateMetaClasses(metaClasses);
 			this.validatePackage(packageModel);
-			this.validatePackage(packageDao);
+			this.validatePackage(packageRepository);
 			this.validatePackage(packageService);
 
 			File outputDirectory = this.prepareOutputDirectory(outputRoot, packageService);
@@ -102,13 +137,17 @@ public class FreeMarkerManager {
 				Map<String, Object> data = new HashMap<String, Object>();
 				data.put("metaClass", metaClass);
 				data.put("packageModel", packageModel);
-				data.put("packageDao", packageDao);
+				data.put("packageRepository", packageRepository);
 				data.put("packageService", packageService);
 				data.put("metaClasses", metaClasses);
 
-				File destination = new File(outputDirectory, metaClass.getName() + "Service.java");
-				this.renderTemplateToFile(SERVICE_TEMPLATE_NAME, data, destination);
-				this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
+				File generatedDestination = new File(outputDirectory, metaClass.getName() + "ServiceBase.java");
+				this.renderTemplateToFile(SERVICE_TEMPLATE_NAME, data, generatedDestination);
+				this.io.stampaMessaggio("Generato: " + generatedDestination.getAbsolutePath());
+
+				File wrapperDestination = new File(outputDirectory, metaClass.getName() + "Service.java");
+				this.renderTemplateToFileIfAbsent(SERVICE_WRAPPER_TEMPLATE_NAME, data, wrapperDestination);
+
 			}
 		} catch (IOException | TemplateException e) {
 			throw new RuntimeException("Errore durante la generazione dei service", e);
@@ -133,9 +172,13 @@ public class FreeMarkerManager {
 				data.put("packageController", packageController);
 				data.put("metaClasses", metaClasses);
 
-				File destination = new File(outputDirectory, metaClass.getName() + "Controller.java");
-				this.renderTemplateToFile(CONTROLLER_TEMPLATE_NAME, data, destination);
-				this.io.stampaMessaggio("Generato: " + destination.getAbsolutePath());
+				File generatedDestination = new File(outputDirectory, metaClass.getName() + "ControllerBase.java");
+				this.renderTemplateToFile(CONTROLLER_TEMPLATE_NAME, data, generatedDestination);
+				this.io.stampaMessaggio("Generato: " + generatedDestination.getAbsolutePath());
+
+				File wrapperDestination = new File(outputDirectory, metaClass.getName() + "Controller.java");
+				this.renderTemplateToFileIfAbsent(CONTROLLER_WRAPPER_TEMPLATE_NAME, data, wrapperDestination);
+
 			}
 		} catch (IOException | TemplateException e) {
 			throw new RuntimeException("Errore durante la generazione dei controller", e);
@@ -187,6 +230,16 @@ public class FreeMarkerManager {
 			throws IOException, TemplateException {
 		Template template = this.conf.getTemplate(templateName);
 		this.renderTemplateToFile(template, data, destination);
+	}
+
+	private void renderTemplateToFileIfAbsent(String templateName, Map<String, Object> data, File destination)
+			throws IOException, TemplateException {
+		if (destination.exists()) {
+			this.io.stampaMessaggio("Preservato file custom: " + destination.getAbsolutePath());
+			return;
+		}
+		this.renderTemplateToFile(templateName, data, destination);
+		this.io.stampaMessaggio("Creato scaffold custom: " + destination.getAbsolutePath());
 	}
 
 	private void renderTemplateToFile(Template template, Map<String, Object> data, File destination)

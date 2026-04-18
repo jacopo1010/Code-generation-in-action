@@ -20,7 +20,7 @@ import java.util.ArrayList;
  * @author ${metaClass.author}
 </#if>
  */
-public class ${metaClass.name} {
+public class ${metaClass.name}Base {
 
     // --- ATTRIBUTI SEMPLICI ---
 <#list fields as field>
@@ -38,7 +38,7 @@ public class ${metaClass.name} {
 </#list>
 
     // --- COSTRUTTORE ---
-    public ${metaClass.name}() {
+    public ${metaClass.name}Base() {
     }
 
     // --- GETTER E SETTER ---

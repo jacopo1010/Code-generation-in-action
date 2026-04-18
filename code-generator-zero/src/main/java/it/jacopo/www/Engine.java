@@ -60,12 +60,14 @@ public class Engine {
 		File sqlFile = this.createSchemaSql(metaClasses, path);
 		this.createModel(metaClasses, path);
 		JooqGenerator jooq = new JooqGenerator(io);
-		jooq.generateDtoAndDao(sqlFile,properties);
+		jooq.generateDtoAndDao(sqlFile, properties, path);
+		this.createRepository(metaClasses, path);
 		this.createService(metaClasses, path);
 		this.createController(metaClasses, path);
 		return metaClasses;
 	}
 
+	
 
 	private void createModel(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
 		Properties properties = this.loader.getApplicationProperties();
@@ -80,17 +82,35 @@ public class Engine {
 		File sqFile = this.marker.generateSchema(metaClasses, FileUtil.resolveConfiguredPath(applicationPropertiesPath, output));
 		return sqFile;
 	}
+	
+	private void createRepository(Map<String, MetaClass> metaClasses, String path) {
+	    Properties properties = this.loader.getApplicationProperties();
+	    String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
+	    String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
+	    String jooqPackage = properties.getProperty(PropertiesCostanti.JOOQ_OUTPUT_PACKAGE);
+	    String packageRepository = properties.getProperty(PropertiesCostanti.REPOSITORY_OUTPUT_PACKAGE);
+	    if (packageRepository == null || packageRepository.trim().isEmpty()) {
+	        packageRepository = jooqPackage.replace(".jooq", ".repository");
+	    }
+	    this.marker.generateRepository(packageModel, jooqPackage,
+	            packageRepository, metaClasses,
+	            FileUtil.resolveJavaOutputPath(path, output));
+	}
 
 	private void createService(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
 		Properties properties = this.loader.getApplicationProperties();
 		String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
-		String packageDao = properties.getProperty(PropertiesCostanti.DAO_OUTPUT_PACKAGE);
 		String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
+		String packageRepository = properties.getProperty(PropertiesCostanti.REPOSITORY_OUTPUT_PACKAGE);
 		String packageService = properties.getProperty(PropertiesCostanti.SERVICE_OUTPUT_PACKAGE);
-		if (packageService == null || packageService.trim().isEmpty()) {
-			packageService = packageDao.replace(".dao", ".service");
+		if (packageRepository == null || packageRepository.trim().isEmpty()) {
+			String jooqPackage = properties.getProperty(PropertiesCostanti.JOOQ_OUTPUT_PACKAGE);
+			packageRepository = jooqPackage.replace(".jooq", ".repository");
 		}
-		this.marker.generateService(packageModel, packageDao, packageService, metaClasses,
+		if (packageService == null || packageService.trim().isEmpty()) {
+			packageService = packageRepository.replace(".repository", ".service");
+		}
+		this.marker.generateService(packageModel, packageRepository, packageService, metaClasses,
 				FileUtil.resolveJavaOutputPath(applicationPropertiesPath, output));
 	}
 

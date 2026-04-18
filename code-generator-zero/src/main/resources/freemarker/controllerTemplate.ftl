@@ -51,6 +51,7 @@ package ${packageController};
 import java.net.URI;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -64,17 +65,17 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import ${packageModel}.${entityName};
-import ${packageService}.${entityName}Service;
+import ${packageService}.${entityName}ServiceBase;
 
 @Path("api/${resourceName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class ${entityName}Controller {
+public class ${entityName}ControllerBase {
 
-    private ${entityName}Service ${entityName?uncap_first}Service;
+    protected final ${entityName}ServiceBase ${entityName?uncap_first}Service;
 
-    public ${entityName}Controller() {
-        this.${entityName?uncap_first}Service = new ${entityName}Service();
+    protected ${entityName}ControllerBase(${entityName}ServiceBase ${entityName?uncap_first}Service) {
+        this.${entityName?uncap_first}Service = ${entityName?uncap_first}Service;
     }
 
     @GET
@@ -115,11 +116,11 @@ public class ${entityName}Controller {
     @GET
     @Path("/{id}")
     public Response get${entityName}(@PathParam("id") ${idField.javaType} id) throws SQLException {
-        ${entityName} ${entityName?uncap_first} = this.${entityName?uncap_first}Service.findById(id);
-        if (${entityName?uncap_first} == null) {
+        Optional<${entityName}> ${entityName?uncap_first} = this.${entityName?uncap_first}Service.findById(id);
+        if (!${entityName?uncap_first}.isPresent()) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
-        return Response.ok(${entityName?uncap_first}).build();
+        return Response.ok(${entityName?uncap_first}.get()).build();
     }
 
 </#if>

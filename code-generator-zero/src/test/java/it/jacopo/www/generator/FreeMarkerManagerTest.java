@@ -14,6 +14,60 @@ import junit.framework.TestCase;
 
 public class FreeMarkerManagerTest extends TestCase {
 
+	public void testGenerateModelUsaGenerationGapEPreservaCustom() throws Exception {
+		File tempDirectory = Files.createTempDirectory("model-generation-gap-test").toFile();
+		try {
+			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
+			MetaClass metaClass = new MetaClass();
+			metaClass.setName("Cliente");
+			metaClass.setJavaDoc("Model cliente");
+
+			MetaField idField = new MetaField();
+			idField.setName("id");
+			idField.setJavaType("Long");
+			idField.setJavaDoc("Identificativo");
+			metaClass.addField(idField);
+
+			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
+			metaClasses.put(metaClass.getName(), metaClass);
+
+			manager.generateModel(
+					"it.test.model",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
+
+			File generatedFile = new File(tempDirectory, "it\\test\\model\\ClienteBase.java");
+			File wrapperFile = new File(tempDirectory, "it\\test\\model\\Cliente.java");
+			assertTrue("Model base non generato nel path atteso", generatedFile.isFile());
+			assertTrue("Model custom non generato nel path atteso", wrapperFile.isFile());
+
+			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
+			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(generatedContent.contains("package it.test.model;"));
+			assertTrue(generatedContent.contains("public class ClienteBase"));
+			assertTrue(generatedContent.contains("public ClienteBase()"));
+			assertTrue(generatedContent.contains("private Long id;"));
+			assertTrue(generatedContent.contains("public Long getId()"));
+			assertTrue(wrapperContent.contains("public class Cliente extends ClienteBase"));
+			assertTrue(wrapperContent.contains("public Cliente()"));
+			assertTrue(wrapperContent.contains("super();"));
+
+			Files.write(wrapperFile.toPath(),
+					("// mio codice custom\r\npublic class Cliente extends ClienteBase {}\r\n")
+							.getBytes(StandardCharsets.UTF_8));
+
+			manager.generateModel(
+					"it.test.model",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
+
+			String preservedWrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(preservedWrapperContent.contains("// mio codice custom"));
+		} finally {
+			this.deleteRecursively(tempDirectory);
+		}
+	}
+
 	public void testNonDuplicaIlPackageSeOutputGiaAllineato() throws Exception {
 		FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
 		Method method = FreeMarkerManager.class.getDeclaredMethod(
@@ -46,8 +100,8 @@ public class FreeMarkerManagerTest extends TestCase {
 				resolved.getPath());
 	}
 
-	public void testGenerateDaoUsaPackageDaoEImportModelCorretti() throws Exception {
-		File tempDirectory = Files.createTempDirectory("dao-template-test").toFile();
+	public void testGenerateRepositoryUsaPackageRepositoryEImportModelCorretti() throws Exception {
+		File tempDirectory = Files.createTempDirectory("repository-template-test").toFile();
 		try {
 			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
 			MetaClass metaClass = new MetaClass();
@@ -62,35 +116,34 @@ public class FreeMarkerManagerTest extends TestCase {
 			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
 			metaClasses.put(metaClass.getName(), metaClass);
 
+			manager.generateRepository(
+					"it.test.model",
+					"it.test.jooq",
+					"it.test.repository",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
 
-			File genericDaoFile = new File(tempDirectory, "it\\test\\dao\\GenericDao.java");
-			assertTrue("GenericDao non generato nel path atteso", genericDaoFile.isFile());
-
-			File genericDaoImplFile = new File(tempDirectory, "it\\test\\dao\\GenericDaoImpl.java");
-			assertTrue("GenericDaoImpl non generato nel path atteso", genericDaoImplFile.isFile());
-
-			File generatedFile = new File(tempDirectory, "it\\test\\dao\\ClienteDao.java");
-			assertTrue("DAO non generato nel path atteso", generatedFile.isFile());
-
-			String genericDaoContent = new String(Files.readAllBytes(genericDaoFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(genericDaoContent.contains("package it.test.dao;"));
-			assertTrue(genericDaoContent.contains("public interface GenericDao<T, ID>"));
-
-			String genericDaoImplContent = new String(Files.readAllBytes(genericDaoImplFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(genericDaoImplContent.contains("package it.test.dao;"));
-			assertTrue(genericDaoImplContent.contains("public abstract class GenericDaoImpl<T, ID> implements GenericDao<T, ID>"));
-
+			File generatedFile = new File(tempDirectory, "it\\test\\repository\\ClienteRepositoryBase.java");
+			File wrapperFile = new File(tempDirectory, "it\\test\\repository\\ClienteRepository.java");
+			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
+			assertTrue("Repository custom non generato nel path atteso", wrapperFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(generatedContent.contains("package it.test.dao;"));
+			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(generatedContent.contains("package it.test.repository;"));
 			assertTrue(generatedContent.contains("import it.test.model.Cliente;"));
-			assertTrue(generatedContent.contains("extends GenericDaoImpl<Cliente, Long>"));
+			assertTrue(generatedContent.contains("import static it.test.jooq.tables.Cliente.CLIENTE;"));
+			assertTrue(generatedContent.contains("public class ClienteRepositoryBase"));
+			assertTrue(generatedContent.contains("protected ClienteRepositoryBase(HikariDataSource dataSource)"));
+			assertTrue(generatedContent.contains("org.jooq.UpdatableRecord<?> record = this.dsl().newRecord(CLIENTE);"));
+			assertFalse(generatedContent.contains("var record ="));
+			assertTrue(wrapperContent.contains("public class ClienteRepository extends ClienteRepositoryBase"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
 	}
 
-	public void testGenerateDaoCreaFinderPerRelazioneManyToOne() throws Exception {
-		File tempDirectory = Files.createTempDirectory("dao-many-to-one-test").toFile();
+	public void testGenerateRepositoryCreaFinderPerRelazioneManyToOne() throws Exception {
+		File tempDirectory = Files.createTempDirectory("repository-many-to-one-test").toFile();
 		try {
 			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
 			MetaClass studenteMetaClass = new MetaClass();
@@ -122,21 +175,68 @@ public class FreeMarkerManagerTest extends TestCase {
 			metaClasses.put(studenteMetaClass.getName(), studenteMetaClass);
 			metaClasses.put(corsoMetaClass.getName(), corsoMetaClass);
 
+			manager.generateRepository(
+					"it.test.model",
+					"it.test.jooq",
+					"it.test.repository",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\dao\\CorsoDao.java");
-			assertTrue("DAO non generato nel path atteso", generatedFile.isFile());
-
+			File generatedFile = new File(tempDirectory, "it\\test\\repository\\CorsoRepositoryBase.java");
+			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(generatedContent.contains("public List<Corso> findByStudenteId(Long studenteId) throws SQLException"));
-			assertTrue(generatedContent.contains("String sql = \"SELECT * FROM corso WHERE studente_id = ?\";"));
-			assertTrue(generatedContent.contains("statement.setLong(1, studenteId);"));
+			assertTrue(generatedContent.contains("public List<Corso> findByStudenteId(Long id)"));
+			assertTrue(generatedContent.contains(".where(CORSO.STUDENTE_ID.eq(id))"));
+			assertTrue(generatedContent.contains(".map(this::toModel);"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
 	}
 
-	public void testGenerateDaoPersisteERicostruisceForeignKeyManyToOne() throws Exception {
-		File tempDirectory = Files.createTempDirectory("dao-many-to-one-persistence-test").toFile();
+	public void testGenerateRepositoryNonSovrascriveIlCustomSeEsiste() throws Exception {
+		File tempDirectory = Files.createTempDirectory("repository-custom-preserve-test").toFile();
+		try {
+			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
+			MetaClass metaClass = new MetaClass();
+			metaClass.setName("Cliente");
+			metaClass.setTable("cliente");
+
+			MetaField idField = new MetaField();
+			idField.setName("id");
+			idField.setJavaType("Long");
+			metaClass.addField(idField);
+
+			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
+			metaClasses.put(metaClass.getName(), metaClass);
+
+			manager.generateRepository(
+					"it.test.model",
+					"it.test.jooq",
+					"it.test.repository",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
+
+			File customFile = new File(tempDirectory, "it\\test\\repository\\ClienteRepository.java");
+			Files.write(customFile.toPath(),
+					("// mio codice custom\r\npublic class ClienteRepository extends ClienteRepositoryBase {}\r\n")
+							.getBytes(StandardCharsets.UTF_8));
+
+			manager.generateRepository(
+					"it.test.model",
+					"it.test.jooq",
+					"it.test.repository",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
+
+			String customContent = new String(Files.readAllBytes(customFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(customContent.contains("// mio codice custom"));
+		} finally {
+			this.deleteRecursively(tempDirectory);
+		}
+	}
+
+	public void testGenerateRepositoryPersisteERicostruisceForeignKeyManyToOne() throws Exception {
+		File tempDirectory = Files.createTempDirectory("repository-many-to-one-persistence-test").toFile();
 		try {
 			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
 
@@ -164,6 +264,16 @@ public class FreeMarkerManagerTest extends TestCase {
 			taskNameField.setJavaType("String");
 			taskMetaClass.addField(taskNameField);
 
+			MetaField creationField = new MetaField();
+			creationField.setName("creationTimeStamp");
+			creationField.setJavaType("Timestamp");
+			taskMetaClass.addField(creationField);
+
+			MetaField updateField = new MetaField();
+			updateField.setName("lastUpdateTimeStamp");
+			updateField.setJavaType("Timestamp");
+			taskMetaClass.addField(updateField);
+
 			MetaField projectRelationField = new MetaField();
 			projectRelationField.setName("contain");
 			projectRelationField.setJavaType("Project");
@@ -177,25 +287,44 @@ public class FreeMarkerManagerTest extends TestCase {
 			metaClasses.put(projectMetaClass.getName(), projectMetaClass);
 			metaClasses.put(taskMetaClass.getName(), taskMetaClass);
 
-		
+			manager.generateRepository(
+					"it.test.model",
+					"it.test.jooq",
+					"it.test.repository",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\dao\\TaskDao.java");
-			assertTrue("DAO non generato nel path atteso", generatedFile.isFile());
-
+			File generatedFile = new File(tempDirectory, "it\\test\\repository\\TaskRepositoryBase.java");
+			File wrapperFile = new File(tempDirectory, "it\\test\\repository\\TaskRepository.java");
+			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
+			assertTrue("Repository custom non generato nel path atteso", wrapperFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(generatedContent.contains("\"project_id\""));
-			assertTrue(generatedContent.contains("INSERT INTO tasks (name, project_id) VALUES (?, ?)"));
-			assertTrue(generatedContent.contains("UPDATE tasks SET name = ?, project_id = ? WHERE id = ?"));
-			assertTrue(generatedContent.contains("statement.setLong(2, entity.getContain().getId());"));
+			assertTrue(generatedContent.contains("import java.time.LocalDateTime;"));
+			assertTrue(generatedContent.contains("import java.sql.Timestamp;"));
+			assertTrue(generatedContent.contains("private Timestamp toTimestamp(LocalDateTime value)"));
+			assertTrue(generatedContent.contains("private LocalDateTime toLocalDateTime(Timestamp value)"));
+			assertTrue(generatedContent.contains("entity.setCreationTimeStamp(this.toTimestamp(record.get(TASKS.CREATION_TIME_STAMP, LocalDateTime.class)));"));
+			assertTrue(generatedContent.contains("entity.setLastUpdateTimeStamp(this.toTimestamp(record.get(TASKS.LAST_UPDATE_TIME_STAMP, LocalDateTime.class)));"));
+			assertTrue(generatedContent.contains("import it.test.model.Project;"));
+			assertTrue(generatedContent.contains("import static it.test.jooq.tables.Tasks.TASKS;"));
+			assertTrue(generatedContent.contains("record.set(TASKS.CREATION_TIME_STAMP, this.toLocalDateTime(entity.getCreationTimeStamp()));"));
+			assertTrue(generatedContent.contains("record.set(TASKS.LAST_UPDATE_TIME_STAMP, this.toLocalDateTime(entity.getLastUpdateTimeStamp()));"));
+			assertTrue(generatedContent.contains("record.set(TASKS.PROJECT_ID, entity.getContain().getId());"));
+			assertTrue(generatedContent.contains(".set(TASKS.CREATION_TIME_STAMP, this.toLocalDateTime(entity.getCreationTimeStamp()))"));
+			assertTrue(generatedContent.contains(".set(TASKS.LAST_UPDATE_TIME_STAMP, this.toLocalDateTime(entity.getLastUpdateTimeStamp()))"));
+			assertTrue(generatedContent.contains(".set(TASKS.PROJECT_ID,"));
+			assertTrue(generatedContent.contains("entity.getContain() != null ? entity.getContain().getId() : null"));
 			assertTrue(generatedContent.contains("Project contain = new Project();"));
-			assertTrue(generatedContent.contains("contain.setId(resultSet.getLong(\"project_id\"));"));
+			assertTrue(generatedContent.contains("contain.setId(record.get(TASKS.PROJECT_ID, Long.class));"));
 			assertTrue(generatedContent.contains("entity.setContain(contain);"));
+			assertTrue(new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8)
+					.contains("public class TaskRepository extends TaskRepositoryBase"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
 	}
 
-	public void testGenerateServiceConCostruttoreVuotoEInizializzazioneDao() throws Exception {
+	public void testGenerateServiceConRepositoryInjection() throws Exception {
 		File tempDirectory = Files.createTempDirectory("service-template-test").toFile();
 		try {
 			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
@@ -217,28 +346,35 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateService(
 					"it.test.model",
-					"it.test.dao",
+					"it.test.repository",
 					"it.test.service",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\service\\ClienteService.java");
-			assertTrue("Service non generato nel path atteso", generatedFile.isFile());
+			File generatedFile = new File(tempDirectory, "it\\test\\service\\ClienteServiceBase.java");
+			File wrapperFile = new File(tempDirectory, "it\\test\\service\\ClienteService.java");
+			assertTrue("ServiceGenerated non generato nel path atteso", generatedFile.isFile());
+			assertTrue("Service custom non generato nel path atteso", wrapperFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
+			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.service;"));
 			assertTrue(generatedContent.contains("import it.test.model.Cliente;"));
-			assertTrue(generatedContent.contains("public ClienteService()"));
-			assertTrue(generatedContent.contains("this.dataSource = new HikariDataSource(hikariConfig);"));
-			assertTrue(generatedContent.contains("this.dao = new ClienteDao(this.dataSource);"));
-			assertTrue(generatedContent.contains("private void validateEntityForWrite(Cliente entity) throws SQLException"));
+			assertTrue(generatedContent.contains("import it.test.repository.ClienteRepositoryBase;"));
+			assertTrue(generatedContent.contains("public class ClienteServiceBase"));
+			assertTrue(generatedContent.contains("protected final ClienteRepositoryBase repository;"));
+			assertTrue(generatedContent.contains("protected ClienteServiceBase(ClienteRepositoryBase repository)"));
+			assertTrue(generatedContent.contains("this.repository = repository;"));
+			assertTrue(generatedContent.contains("private void validateEntityForWrite(Cliente entity)"));
 			assertTrue(generatedContent.contains("if (entity == null)"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Cliente obbligatorio\");"));
 			assertTrue(generatedContent.contains("this.prepareForCreate(entity);"));
 			assertTrue(generatedContent.contains("this.prepareForUpdate(entity);"));
-			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id obbligatorio\");"));
-			assertTrue(generatedContent.contains("public List<Cliente> findByKeyword(String keyword) throws SQLException"));
-			assertTrue(generatedContent.contains("return this.getDao().searchByKeyword(keyword);"));
+			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id obbligatorio per l'aggiornamento di Cliente\");"));
+			assertTrue(generatedContent.contains("public List<Cliente> findByKeyword(String keyword)"));
+			assertTrue(generatedContent.contains("return this.repository.findByKeyword(keyword);"));
+			assertTrue(wrapperContent.contains("public class ClienteService extends ClienteServiceBase"));
+			assertTrue(wrapperContent.contains("public ClienteService(ClienteRepositoryBase repository)"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -278,27 +414,28 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateService(
 					"it.test.model",
-					"it.test.dao",
+					"it.test.repository",
 					"it.test.service",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\service\\CorsoService.java");
-			assertTrue("Service non generato nel path atteso", generatedFile.isFile());
+			File generatedFile = new File(tempDirectory, "it\\test\\service\\CorsoServiceBase.java");
+			assertTrue("ServiceGenerated non generato nel path atteso", generatedFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("import it.test.model.Studente;"));
-			assertTrue(generatedContent.contains("import it.test.dao.StudenteDao;"));
-			assertTrue(generatedContent.contains("private final StudenteDao studenteDao;"));
-			assertTrue(generatedContent.contains("this.studenteDao = new StudenteDao(this.dataSource);"));
+			assertTrue(generatedContent.contains("import it.test.repository.StudenteRepositoryBase;"));
+			assertTrue(generatedContent.contains("protected final StudenteRepositoryBase studenteRepository;"));
+			assertTrue(generatedContent.contains("StudenteRepositoryBase studenteRepository"));
 			assertTrue(generatedContent.contains("Studente studente = entity.getStudente();"));
 			assertTrue(generatedContent.contains("if (studente != null)"));
 			assertTrue(generatedContent.contains("if (studente.getId() == null)"));
-			assertTrue(generatedContent.contains("if (!this.studenteDao.existsById(studente.getId()))"));
-			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id Studente associato obbligatorio\");"));
-			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Studente associato non esistente: \" + studente.getId());"));
-			assertTrue(generatedContent.contains("public List<Corso> findByStudenteId(Long studenteId) throws SQLException"));
-			assertTrue(generatedContent.contains("return this.getDao().findByStudenteId(studenteId);"));
+			assertTrue(generatedContent.contains("if (!this.studenteRepository.existsById(studente.getId()))"));
+			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id di Studente associato obbligatorio\");"));
+			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Studente associato non esistente: \""));
+			assertTrue(generatedContent.contains("+ studente.getId());"));
+			assertTrue(generatedContent.contains("public List<Corso> findByStudenteId(Long id)"));
+			assertTrue(generatedContent.contains("return this.repository.findByStudenteId(id);"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -331,24 +468,24 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateService(
 					"it.test.model",
-					"it.test.dao",
+					"it.test.repository",
 					"it.test.service",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\service\\TaskService.java");
-			assertTrue("Service non generato nel path atteso", generatedFile.isFile());
+			File generatedFile = new File(tempDirectory, "it\\test\\service\\TaskServiceBase.java");
+			assertTrue("ServiceGenerated non generato nel path atteso", generatedFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("import java.sql.Timestamp;"));
 			assertTrue(generatedContent.contains("private void prepareForCreate(Task entity)"));
-			assertTrue(generatedContent.contains("private void validateEntityForWrite(Task entity) throws SQLException"));
+			assertTrue(generatedContent.contains("private void validateEntityForWrite(Task entity)"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Task obbligatorio\");"));
 			assertTrue(generatedContent.contains("if (entity.getCreationTimeStamp() == null)"));
 			assertTrue(generatedContent.contains("entity.setLastUpdateTimeStamp(now);"));
 			assertTrue(generatedContent.contains("private void prepareForUpdate(Task entity)"));
 			assertTrue(generatedContent.contains("if (entity.getId() == null)"));
-			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id obbligatorio\");"));
+			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id obbligatorio per l'aggiornamento di Task\");"));
 			assertTrue(generatedContent.contains("entity.setCreationTimeStamp(new Timestamp(System.currentTimeMillis()));"));
 			assertTrue(generatedContent.contains("entity.setLastUpdateTimeStamp(new Timestamp(System.currentTimeMillis()));"));
 			assertTrue(generatedContent.contains("this.prepareForCreate(entity);"));
@@ -393,24 +530,25 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateService(
 					"it.test.model",
-					"it.test.dao",
+					"it.test.repository",
 					"it.test.service",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\service\\TaskService.java");
-			assertTrue("Service non generato nel path atteso", generatedFile.isFile());
+			File generatedFile = new File(tempDirectory, "it\\test\\service\\TaskServiceBase.java");
+			assertTrue("ServiceGenerated non generato nel path atteso", generatedFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("import it.test.model.Project;"));
-			assertTrue(generatedContent.contains("import it.test.dao.ProjectDao;"));
-			assertTrue(generatedContent.contains("private final ProjectDao projectDao;"));
-			assertTrue(generatedContent.contains("this.projectDao = new ProjectDao(this.dataSource);"));
+			assertTrue(generatedContent.contains("import it.test.repository.ProjectRepositoryBase;"));
+			assertTrue(generatedContent.contains("protected final ProjectRepositoryBase projectRepository;"));
+			assertTrue(generatedContent.contains("ProjectRepositoryBase projectRepository"));
 			assertTrue(generatedContent.contains("Project contain = entity.getContain();"));
 			assertTrue(generatedContent.contains("if (contain == null || contain.getId() == null)"));
-			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Project associato obbligatorio\");"));
-			assertTrue(generatedContent.contains("if (!this.projectDao.existsById(contain.getId()))"));
-			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Project associato non esistente: \" + contain.getId());"));
+			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Project associato obbligatorio per Task\");"));
+			assertTrue(generatedContent.contains("if (!this.projectRepository.existsById(contain.getId()))"));
+			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Project associato non esistente: \""));
+			assertTrue(generatedContent.contains("+ contain.getId());"));
 			assertTrue(generatedContent.contains("this.validateEntityForWrite(entity);"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
@@ -444,18 +582,24 @@ public class FreeMarkerManagerTest extends TestCase {
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\controller\\TaskController.java");
-			assertTrue("Controller non generato nel path atteso", generatedFile.isFile());
+			File generatedFile = new File(tempDirectory, "it\\test\\controller\\TaskControllerBase.java");
+			File wrapperFile = new File(tempDirectory, "it\\test\\controller\\TaskController.java");
+			assertTrue("ControllerGenerated non generato nel path atteso", generatedFile.isFile());
+			assertTrue("Controller custom non generato nel path atteso", wrapperFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
+			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.controller;"));
 			assertTrue(generatedContent.contains("import jakarta.ws.rs.Path;"));
 			assertTrue(generatedContent.contains("import jakarta.ws.rs.core.Response;"));
+			assertTrue(generatedContent.contains("import java.util.Optional;"));
 			assertTrue(generatedContent.contains("import it.test.model.Task;"));
-			assertTrue(generatedContent.contains("import it.test.service.TaskService;"));
+			assertTrue(generatedContent.contains("import it.test.service.TaskServiceBase;"));
 			assertTrue(generatedContent.contains("@Path(\"api/tasks\")"));
-			assertTrue(generatedContent.contains("private TaskService taskService;"));
-			assertTrue(generatedContent.contains("this.taskService = new TaskService();"));
+			assertTrue(generatedContent.contains("public class TaskControllerBase"));
+			assertTrue(generatedContent.contains("protected final TaskServiceBase taskService;"));
+			assertTrue(generatedContent.contains("protected TaskControllerBase(TaskServiceBase taskService)"));
+			assertTrue(generatedContent.contains("this.taskService = taskService;"));
 			assertTrue(generatedContent.contains("public Response getAllTasks() throws SQLException"));
 			assertTrue(generatedContent.contains("return Response.ok(tasks).build();"));
 			assertTrue(generatedContent.contains("public Response countTasks() throws SQLException"));
@@ -464,7 +608,9 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("public Response findByKeyword(@QueryParam(\"keyword\") String keyword) throws SQLException"));
 			assertTrue(generatedContent.contains("return Response.ok(this.taskService.findByKeyword(keyword)).build();"));
 			assertTrue(generatedContent.contains("public Response getTask(@PathParam(\"id\") Long id) throws SQLException"));
-			assertTrue(generatedContent.contains("Task task = this.taskService.findById(id);"));
+			assertTrue(generatedContent.contains("Optional<Task> task = this.taskService.findById(id);"));
+			assertTrue(generatedContent.contains("if (!task.isPresent())"));
+			assertTrue(generatedContent.contains("return Response.ok(task.get()).build();"));
 			assertTrue(generatedContent.contains("public Response createTask(Task task) throws SQLException"));
 			assertTrue(generatedContent.contains("Task created = this.taskService.save(task);"));
 			assertTrue(generatedContent.contains("return Response.created(URI.create(\"/api/tasks/\" + created.getId())).entity(created).build();"));
@@ -474,6 +620,8 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("public Response deleteAll() throws SQLException"));
 			assertTrue(generatedContent.contains("public Response deleteById(@PathParam(\"id\") Long id) throws SQLException"));
 			assertTrue(generatedContent.contains("boolean deleted = this.taskService.delete(id);"));
+			assertTrue(wrapperContent.contains("public class TaskController extends TaskControllerBase"));
+			assertTrue(wrapperContent.contains("public TaskController(TaskServiceBase taskService)"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -518,8 +666,8 @@ public class FreeMarkerManagerTest extends TestCase {
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\controller\\TaskController.java");
-			assertTrue("Controller non generato nel path atteso", generatedFile.isFile());
+			File generatedFile = new File(tempDirectory, "it\\test\\controller\\TaskControllerBase.java");
+			assertTrue("ControllerGenerated non generato nel path atteso", generatedFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("@Path(\"/by-contain/{containId}\")"));
