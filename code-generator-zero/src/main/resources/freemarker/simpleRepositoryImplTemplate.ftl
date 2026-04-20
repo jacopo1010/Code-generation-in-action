@@ -1,10 +1,12 @@
 <#ftl output_format="plainText">
-package ${packagePersistence};
+package ${packageRepository};
 
 import java.util.List;
 import java.util.Optional;
 
 import org.jooq.DSLContext;
+import org.jooq.conf.RenderQuotedNames;
+import org.jooq.conf.Settings;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Table;
@@ -23,7 +25,10 @@ public abstract class SimpleRepositoryImpl<T> implements SimpleRepository<T> {
 
     @Override
     public DSLContext getDsl() {
-        return DSL.using(this.dataSource, org.jooq.SQLDialect.POSTGRES);
+        return DSL.using(
+                this.dataSource,
+                org.jooq.SQLDialect.POSTGRES,
+                new Settings().withRenderQuotedNames(RenderQuotedNames.NEVER));
     }
 
     protected abstract Table<?> getTable();

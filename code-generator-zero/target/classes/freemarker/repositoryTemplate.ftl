@@ -82,7 +82,6 @@ import ${packageModel}.${entityName};
 <#list relationTypesToImport as relationType>
 import ${packageModel}.${relationType};
 </#list>
-import ${packagePersistence}.SimpleRepositoryImpl;
 import static ${jooqPackage}.tables.${tableClassName}.${tableConstant};
 
 public class ${entityName}Repository extends SimpleRepositoryImpl<${entityName}> {

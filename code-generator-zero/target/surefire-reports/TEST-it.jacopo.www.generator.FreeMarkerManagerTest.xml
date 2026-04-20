@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="it.jacopo.www.generator.FreeMarkerManagerTest" time="1.284" tests="14" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.719" tests="14" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="22"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -15,7 +15,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="IT"/>
     <property name="sun.boot.library.path" value="C:\Program Files\Java22\jdk-22.0.2+9\bin"/>
-    <property name="sun.java.command" value="C:\Users\Local_admin\AppData\Local\Temp\surefire2502140754326348101\surefirebooter-20260420195529072_3.jar C:\Users\Local_admin\AppData\Local\Temp\surefire2502140754326348101 2026-04-20T19-55-28_934-jvmRun1 surefire-20260420195529072_1tmp surefire_0-20260420195529072_2tmp"/>
+    <property name="sun.java.command" value="C:\Users\Local_admin\AppData\Local\Temp\surefire8654542254477061708\surefirebooter-20260420204907362_3.jar C:\Users\Local_admin\AppData\Local\Temp\surefire8654542254477061708 2026-04-20T20-49-07_215-jvmRun1 surefire-20260420204907362_1tmp surefire_0-20260420204907362_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\target\test-classes;C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\target\classes;C:\Users\Local_admin\.m2\repository\junit\junit\3.8.1\junit-3.8.1.jar;C:\Users\Local_admin\.m2\repository\org\freemarker\freemarker\2.3.34\freemarker-2.3.34.jar;C:\Users\Local_admin\.m2\repository\org\jooq\jooq\3.19.0\jooq-3.19.0.jar;C:\Users\Local_admin\.m2\repository\io\r2dbc\r2dbc-spi\1.0.0.RELEASE\r2dbc-spi-1.0.0.RELEASE.jar;C:\Users\Local_admin\.m2\repository\org\reactivestreams\reactive-streams\1.0.3\reactive-streams-1.0.3.jar;C:\Users\Local_admin\.m2\repository\org\jooq\jooq-meta\3.19.0\jooq-meta-3.19.0.jar;C:\Users\Local_admin\.m2\repository\jakarta\xml\bind\jakarta.xml.bind-api\4.0.0\jakarta.xml.bind-api-4.0.0.jar;C:\Users\Local_admin\.m2\repository\jakarta\activation\jakarta.activation-api\2.1.0\jakarta.activation-api-2.1.0.jar;C:\Users\Local_admin\.m2\repository\org\jooq\jooq-meta-extensions\3.19.0\jooq-meta-extensions-3.19.0.jar;C:\Users\Local_admin\.m2\repository\com\h2database\h2\2.2.224\h2-2.2.224.jar;C:\Users\Local_admin\.m2\repository\org\jooq\jooq-codegen\3.19.0\jooq-codegen-3.19.0.jar;C:\Users\Local_admin\.m2\repository\org\postgresql\postgresql\42.5.4\postgresql-42.5.4.jar;C:\Users\Local_admin\.m2\repository\org\checkerframework\checker-qual\3.5.0\checker-qual-3.5.0.jar;"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -30,7 +30,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
-    <property name="surefire.real.class.path" value="C:\Users\Local_admin\AppData\Local\Temp\surefire2502140754326348101\surefirebooter-20260420195529072_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\Local_admin\AppData\Local\Temp\surefire8654542254477061708\surefirebooter-20260420204907362_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="22.0.2+9"/>
@@ -59,18 +59,18 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="66.0"/>
   </properties>
-  <testcase name="testGenerateServiceValidaRelazioneManyToOneObbligatoriaPrimaDiSaveEUpdate" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.496"/>
-  <testcase name="testGenerateServiceConRepositoryInjection" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.03"/>
-  <testcase name="testGenerateSchemaUsaIdentityPerIdBigInt" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.017"/>
-  <testcase name="testGenerateModelUsaGenerationGapEPreservaCustom" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.147"/>
-  <testcase name="testNonDuplicaIlPackageSeOutputGiaAllineato" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.035"/>
-  <testcase name="testAggiungeIlPackageSeOutputEPuntatoAllaRoot" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.0"/>
-  <testcase name="testGenerateRepositoryPersisteERicostruisceForeignKeyManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.189"/>
-  <testcase name="testGenerateRepositoryUsaPackageRepositoryEImportModelCorretti" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.079"/>
-  <testcase name="testGenerateServicePreparaTimestampTecniciPrimaDiSaveEUpdate" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.063"/>
-  <testcase name="testGenerateControllerCreaEndpointPerRelazioneManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.04"/>
-  <testcase name="testGenerateRepositoryCreaFinderPerRelazioneManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.092"/>
-  <testcase name="testGenerateControllerCreaCrudCompletoBasatoSulService" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.043"/>
-  <testcase name="testGenerateRepositoryNonSovrascriveIlCustomSeEsiste" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.028"/>
-  <testcase name="testGenerateServiceCreaPassThroughPerRelazioneManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.021"/>
+  <testcase name="testGenerateServiceValidaRelazioneManyToOneObbligatoriaPrimaDiSaveEUpdate" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.44"/>
+  <testcase name="testGenerateServiceCreaPassThroughPerRelazioneManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.027"/>
+  <testcase name="testGenerateRepositoryCreaFinderPerRelazioneManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.044"/>
+  <testcase name="testGenerateRepositoryNonSovrascriveIlCustomSeEsiste" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.034"/>
+  <testcase name="testAggiungeIlPackageSeOutputEPuntatoAllaRoot" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.002"/>
+  <testcase name="testNonDuplicaIlPackageSeOutputGiaAllineato" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.001"/>
+  <testcase name="testGenerateModelUsaGenerationGapEPreservaCustom" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.02"/>
+  <testcase name="testGenerateRepositoryPersisteERicostruisceForeignKeyManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.032"/>
+  <testcase name="testGenerateServicePreparaTimestampTecniciPrimaDiSaveEUpdate" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.02"/>
+  <testcase name="testGenerateRepositoryUsaPackageRepositoryEImportModelCorretti" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.031"/>
+  <testcase name="testGenerateServiceConRepositoryInjection" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.021"/>
+  <testcase name="testGenerateSchemaUsaIdentityPerIdBigInt" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.009"/>
+  <testcase name="testGenerateControllerCreaEndpointPerRelazioneManyToOne" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.02"/>
+  <testcase name="testGenerateControllerCreaCrudCompletoBasatoSulService" classname="it.jacopo.www.generator.FreeMarkerManagerTest" time="0.016"/>
 </testsuite>

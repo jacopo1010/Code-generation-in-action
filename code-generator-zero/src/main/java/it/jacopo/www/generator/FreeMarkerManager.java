@@ -104,8 +104,7 @@ public class FreeMarkerManager {
 	        this.validatePackage(jooqPackage);
 	        this.validatePackage(packageRepository);
 
-	        String packagePersistence = packageRepository + ".persistence";
-	        this.generateSimpleRepositoryInfrastructure(packagePersistence, outputRoot);
+	        this.generateSimpleRepositoryInfrastructure(packageRepository, outputRoot);
 
 	        File outputDirectory = this.prepareOutputDirectory(outputRoot, packageRepository);
 	        for (MetaClass metaClass : metaClasses.values()) {
@@ -114,7 +113,7 @@ public class FreeMarkerManager {
 	            data.put("packageModel", packageModel);
 	            data.put("jooqPackage", jooqPackage);
 	            data.put("packageRepository", packageRepository);
-	            data.put("packagePersistence", packagePersistence);
+	            data.put("packageRepository", packageRepository);
 	            data.put("metaClasses", metaClasses);
 
 	            File repositoryDestination = new File(outputDirectory,
@@ -127,11 +126,11 @@ public class FreeMarkerManager {
 	    }
 	}
 
-	private void generateSimpleRepositoryInfrastructure(String packagePersistence, String outputRoot)
+	private void generateSimpleRepositoryInfrastructure(String packageRepository, String outputRoot)
 			throws IOException, TemplateException {
-		File outputDirectory = this.prepareOutputDirectory(outputRoot, packagePersistence);
+		File outputDirectory = this.prepareOutputDirectory(outputRoot, packageRepository);
 		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("packagePersistence", packagePersistence);
+		data.put("packageRepository", packageRepository);
 
 		File interfaceDestination = new File(outputDirectory, "SimpleRepository.java");
 		this.renderTemplateToFileIfAbsent(SIMPLE_REPOSITORY_TEMPLATE_NAME, data, interfaceDestination);

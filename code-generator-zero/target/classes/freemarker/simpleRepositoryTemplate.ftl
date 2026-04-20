@@ -1,5 +1,5 @@
 <#ftl output_format="plainText">
-package ${packagePersistence};
+package ${packageRepository};
 
 import java.util.List;
 import java.util.Optional;

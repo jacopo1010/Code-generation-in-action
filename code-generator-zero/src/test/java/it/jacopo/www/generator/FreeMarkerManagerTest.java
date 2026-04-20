@@ -124,10 +124,8 @@ public class FreeMarkerManagerTest extends TestCase {
 					tempDirectory.getAbsolutePath());
 
 			File generatedFile = new File(tempDirectory, "it\\test\\repository\\ClienteRepository.java");
-			File simpleRepositoryFile = new File(tempDirectory,
-					"it\\test\\repository\\persistence\\SimpleRepository.java");
-			File simpleRepositoryImplFile = new File(tempDirectory,
-					"it\\test\\repository\\persistence\\SimpleRepositoryImpl.java");
+			File simpleRepositoryFile = new File(tempDirectory, "it\\test\\repository\\SimpleRepository.java");
+			File simpleRepositoryImplFile = new File(tempDirectory, "it\\test\\repository\\SimpleRepositoryImpl.java");
 			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
 			assertTrue("SimpleRepository non generato nel path atteso", simpleRepositoryFile.isFile());
 			assertTrue("SimpleRepositoryImpl non generato nel path atteso", simpleRepositoryImplFile.isFile());
@@ -138,7 +136,6 @@ public class FreeMarkerManagerTest extends TestCase {
 					StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.repository;"));
 			assertTrue(generatedContent.contains("import it.test.model.Cliente;"));
-			assertTrue(generatedContent.contains("import it.test.repository.persistence.SimpleRepositoryImpl;"));
 			assertTrue(generatedContent.contains("import static it.test.jooq.tables.Cliente.CLIENTE;"));
 			assertTrue(generatedContent.contains("public class ClienteRepository extends SimpleRepositoryImpl<Cliente>"));
 			assertTrue(generatedContent.contains("public ClienteRepository(HikariDataSource dataSource)"));
@@ -146,7 +143,9 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("protected void bindRecord(UpdatableRecord<?> record, Cliente entity)"));
 			assertTrue(generatedContent.contains("protected Field<Long> getIdField()"));
 			assertFalse(generatedContent.contains("deleteById("));
+			assertTrue(simpleRepositoryContent.contains("package it.test.repository;"));
 			assertTrue(simpleRepositoryContent.contains("public interface SimpleRepository<T>"));
+			assertTrue(simpleRepositoryImplContent.contains("package it.test.repository;"));
 			assertTrue(simpleRepositoryImplContent.contains("public abstract class SimpleRepositoryImpl<T> implements SimpleRepository<T>"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
@@ -232,8 +231,7 @@ public class FreeMarkerManagerTest extends TestCase {
 					("// mio codice custom\r\npublic class ClienteRepository {}\r\n")
 							.getBytes(StandardCharsets.UTF_8));
 
-			File simpleRepositoryFile = new File(tempDirectory,
-					"it\\test\\repository\\persistence\\SimpleRepository.java");
+			File simpleRepositoryFile = new File(tempDirectory, "it\\test\\repository\\SimpleRepository.java");
 			Files.write(simpleRepositoryFile.toPath(),
 					("// custom infra\r\npublic interface SimpleRepository<T> {}\r\n")
 							.getBytes(StandardCharsets.UTF_8));
@@ -324,7 +322,6 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("entity.setCreationTimeStamp(this.toTimestamp(record.get(TASKS.CREATION_TIME_STAMP, LocalDateTime.class)));"));
 			assertTrue(generatedContent.contains("entity.setLastUpdateTimeStamp(this.toTimestamp(record.get(TASKS.LAST_UPDATE_TIME_STAMP, LocalDateTime.class)));"));
 			assertTrue(generatedContent.contains("import it.test.model.Project;"));
-			assertTrue(generatedContent.contains("import it.test.repository.persistence.SimpleRepositoryImpl;"));
 			assertTrue(generatedContent.contains("import static it.test.jooq.tables.Tasks.TASKS;"));
 			assertTrue(generatedContent.contains("record.set(TASKS.CREATION_TIME_STAMP, this.toLocalDateTime(entity.getCreationTimeStamp()));"));
 			assertTrue(generatedContent.contains("record.set(TASKS.LAST_UPDATE_TIME_STAMP, this.toLocalDateTime(entity.getLastUpdateTimeStamp()));"));
