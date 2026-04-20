@@ -65,16 +65,16 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import ${packageModel}.${entityName};
-import ${packageService}.${entityName}ServiceBase;
+import ${packageService}.${entityName}Service;
 
 @Path("api/${resourceName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ${entityName}ControllerBase {
 
-    protected final ${entityName}ServiceBase ${entityName?uncap_first}Service;
+    protected final ${entityName}Service ${entityName?uncap_first}Service;
 
-    protected ${entityName}ControllerBase(${entityName}ServiceBase ${entityName?uncap_first}Service) {
+    protected ${entityName}ControllerBase(${entityName}Service ${entityName?uncap_first}Service) {
         this.${entityName?uncap_first}Service = ${entityName?uncap_first}Service;
     }
 

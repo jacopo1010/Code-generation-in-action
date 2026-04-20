@@ -2,11 +2,11 @@
 <#assign entityName = metaClass.name>
 package ${packageController};
 
-import ${packageService}.${entityName}ServiceBase;
+import ${packageService}.${entityName}Service;
 
 public class ${entityName}Controller extends ${entityName}ControllerBase {
 
-    public ${entityName}Controller(${entityName}ServiceBase ${entityName?uncap_first}Service) {
+    public ${entityName}Controller(${entityName}Service ${entityName?uncap_first}Service) {
         super(${entityName?uncap_first}Service);
     }
 }

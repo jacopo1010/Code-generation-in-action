@@ -610,11 +610,11 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("import jakarta.ws.rs.core.Response;"));
 			assertTrue(generatedContent.contains("import java.util.Optional;"));
 			assertTrue(generatedContent.contains("import it.test.model.Task;"));
-			assertTrue(generatedContent.contains("import it.test.service.TaskServiceBase;"));
+			assertTrue(generatedContent.contains("import it.test.service.TaskService;"));
 			assertTrue(generatedContent.contains("@Path(\"api/tasks\")"));
 			assertTrue(generatedContent.contains("public class TaskControllerBase"));
-			assertTrue(generatedContent.contains("protected final TaskServiceBase taskService;"));
-			assertTrue(generatedContent.contains("protected TaskControllerBase(TaskServiceBase taskService)"));
+			assertTrue(generatedContent.contains("protected final TaskService taskService;"));
+			assertTrue(generatedContent.contains("protected TaskControllerBase(TaskService taskService)"));
 			assertTrue(generatedContent.contains("this.taskService = taskService;"));
 			assertTrue(generatedContent.contains("public Response getAllTasks() throws SQLException"));
 			assertTrue(generatedContent.contains("return Response.ok(tasks).build();"));
@@ -637,7 +637,8 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("public Response deleteById(@PathParam(\"id\") Long id) throws SQLException"));
 			assertTrue(generatedContent.contains("boolean deleted = this.taskService.delete(id);"));
 			assertTrue(wrapperContent.contains("public class TaskController extends TaskControllerBase"));
-			assertTrue(wrapperContent.contains("public TaskController(TaskServiceBase taskService)"));
+			assertTrue(wrapperContent.contains("import it.test.service.TaskService;"));
+			assertTrue(wrapperContent.contains("public TaskController(TaskService taskService)"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
