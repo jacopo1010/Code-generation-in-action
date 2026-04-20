@@ -65,6 +65,52 @@ public class GeneratoreDiMetaClassTest extends TestCase {
 		assertTrue(ownershipField.isRelation());
 		assertEquals("MANY_TO_ONE", ownershipField.getRelationType());
 		assertEquals("user_id", ownershipField.getForeignKeyColumn());
+		assertNull(ownershipField.getCascadeOnDelete());
+		assertNull(ownershipField.getCascadeOnUpdate());
+	}
+
+	public void testLeggeCascadeDaiTagXmiDellaRelazione() throws Exception {
+		File xmiFile = new File(this.tempDirectory, "cascade-domain.xmi");
+		this.scrivi(xmiFile,
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+				+ "<xmi:XMI xmi:version=\"2.1\" xmlns:uml=\"http://schema.omg.org/spec/UML/2.0\" xmlns:xmi=\"http://schema.omg.org/spec/XMI/2.1\">\n"
+				+ "  <uml:Model xmi:id=\"model1\" xmi:type=\"uml:Model\" name=\"RootModel\">\n"
+				+ "    <packagedElement xmi:id=\"pkg1\" name=\"Model\" xmi:type=\"uml:Model\">\n"
+				+ "      <packagedElement xmi:id=\"userClass\" name=\"User\" xmi:type=\"uml:Class\">\n"
+				+ "        <ownedAttribute xmi:id=\"userId\" name=\"id\" type=\"long_id\" xmi:type=\"uml:Property\"/>\n"
+				+ "      </packagedElement>\n"
+				+ "      <packagedElement xmi:id=\"projectClass\" name=\"Project\" xmi:type=\"uml:Class\">\n"
+				+ "        <ownedAttribute xmi:id=\"projectId\" name=\"id\" type=\"long_id\" xmi:type=\"uml:Property\"/>\n"
+				+ "      </packagedElement>\n"
+				+ "      <packagedElement xmi:id=\"assoc1\" name=\"owner\" xmi:type=\"uml:Association\">\n"
+				+ "        <ownedEnd xmi:id=\"userEnd\" xmi:type=\"uml:Property\" type=\"userClass\">\n"
+				+ "          <lowerValue xmi:id=\"l1\" xmi:type=\"uml:LiteralInteger\" value=\"1\"/>\n"
+				+ "          <upperValue xmi:id=\"u1\" xmi:type=\"uml:LiteralInteger\" value=\"1\"/>\n"
+				+ "          <xmi:Extension>\n"
+				+ "            <tag onDelete=\"cascade\" onUpdate=\"restrict\"/>\n"
+				+ "          </xmi:Extension>\n"
+				+ "        </ownedEnd>\n"
+				+ "        <ownedEnd xmi:id=\"projectEnd\" xmi:type=\"uml:Property\" type=\"projectClass\">\n"
+				+ "          <lowerValue xmi:id=\"l2\" xmi:type=\"uml:LiteralUnlimitedNatural\" value=\"*\"/>\n"
+				+ "          <upperValue xmi:id=\"u2\" xmi:type=\"uml:LiteralUnlimitedNatural\" value=\"*\"/>\n"
+				+ "        </ownedEnd>\n"
+				+ "      </packagedElement>\n"
+				+ "    </packagedElement>\n"
+				+ "    <packagedElement xmi:id=\"long_id\" xmi:type=\"uml:DataType\" name=\"long\"/>\n"
+				+ "  </uml:Model>\n"
+				+ "</xmi:XMI>");
+
+		GeneratoreDiMetaClass generator = new GeneratoreDiMetaClass(new IOFittizio());
+
+		Map<String, MetaClass> result = generator.generaMetaClass(xmiFile);
+
+		MetaClass projectMetaClass = result.get("Project");
+		assertNotNull(projectMetaClass);
+
+		MetaField ownershipField = projectMetaClass.getFields().get("owner");
+		assertNotNull(ownershipField);
+		assertEquals("CASCADE", ownershipField.getCascadeOnDelete());
+		assertEquals("RESTRICT", ownershipField.getCascadeOnUpdate());
 	}
 
 	public void testNormalizzaDataTypeStarUmlMaiuscoliEListaComeCollezione() throws Exception {

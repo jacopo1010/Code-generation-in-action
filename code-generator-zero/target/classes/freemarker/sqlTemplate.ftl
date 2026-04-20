@@ -83,7 +83,9 @@ CREATE TABLE IF NOT EXISTS ${tableName} (
 <#list foreignKeyFields as field>
 ALTER TABLE ${tableName}
     ADD CONSTRAINT fk_${tableName}_${resolveColumnName(field)}
-    FOREIGN KEY (${resolveColumnName(field)}) REFERENCES ${resolveReferenceTableName(field)}(id);
+    FOREIGN KEY (${resolveColumnName(field)}) REFERENCES ${resolveReferenceTableName(field)}(id)<#if field.cascadeOnDelete?? && field.cascadeOnDelete?has_content>
+    ON DELETE ${field.cascadeOnDelete}</#if><#if field.cascadeOnUpdate?? && field.cascadeOnUpdate?has_content>
+    ON UPDATE ${field.cascadeOnUpdate}</#if>;
 
 </#list>
 <#list uniqueFields as field>

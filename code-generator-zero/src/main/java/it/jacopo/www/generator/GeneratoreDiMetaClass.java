@@ -176,6 +176,8 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		metaField.setJoinTableRequired(false);
 		metaField.setRelationType(null);
 		metaField.setForeignKeyColumn(null);
+		metaField.setCascadeOnDelete(null);
+		metaField.setCascadeOnUpdate(null);
 
 		Map<String, String> tags = this.extractTags(attribute);
 		metaField.setTags(tags);
@@ -232,6 +234,8 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 				relationField.setCollection(this.isCollectionMultiplicity(relationField.getTargetUpperBound()));
 				relationField.setJoinTableRequired("MANY_TO_MANY".equals(relationField.getRelationType()));
 				relationField.setForeignKeyColumn(this.resolveForeignKeyColumn(ownerClass.getName(), referencedType, relationField));
+				relationField.setCascadeOnDelete(this.resolveCascadeAction(relationField.getTags(), "onDelete"));
+				relationField.setCascadeOnUpdate(this.resolveCascadeAction(relationField.getTags(), "onUpdate"));
 				relationField.setRequired(this.isRequiredMultiplicity(relationField.getTargetLowerBound()));
 				relationFields.add(relationField);
 			}
@@ -373,6 +377,14 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 			return this.toSnakeCase(ownerClassName) + "_id";
 		}
 		return this.toSnakeCase(targetType) + "_id";
+	}
+
+	private String resolveCascadeAction(Map<String, String> tags, String key) {
+		String value = tags.get(key);
+		if (value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		return value.trim().toUpperCase();
 	}
 
 	private String resolveClassName(String xmiId, List<Element> classes) {

@@ -727,6 +727,57 @@ public class FreeMarkerManagerTest extends TestCase {
 		}
 	}
 
+	public void testGenerateSchemaScriveCascadeSulleForeignKey() throws Exception {
+		File tempFile = Files.createTempFile("schema-cascade-test", ".sql").toFile();
+		try {
+			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
+
+			MetaClass userMetaClass = new MetaClass();
+			userMetaClass.setName("User");
+			userMetaClass.setTable("users");
+
+			MetaField userIdField = new MetaField();
+			userIdField.setName("id");
+			userIdField.setJavaType("Long");
+			userIdField.setSqlType("BIGINT");
+			userMetaClass.addField(userIdField);
+
+			MetaClass projectMetaClass = new MetaClass();
+			projectMetaClass.setName("Project");
+			projectMetaClass.setTable("projects");
+
+			MetaField projectIdField = new MetaField();
+			projectIdField.setName("id");
+			projectIdField.setJavaType("Long");
+			projectIdField.setSqlType("BIGINT");
+			projectMetaClass.addField(projectIdField);
+
+			MetaField ownerField = new MetaField();
+			ownerField.setName("owner");
+			ownerField.setType("User");
+			ownerField.setJavaType("User");
+			ownerField.setRelation(true);
+			ownerField.setRelationType("MANY_TO_ONE");
+			ownerField.setForeignKeyColumn("user_id");
+			ownerField.setCascadeOnDelete("CASCADE");
+			ownerField.setCascadeOnUpdate("RESTRICT");
+			projectMetaClass.addField(ownerField);
+
+			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
+			metaClasses.put(userMetaClass.getName(), userMetaClass);
+			metaClasses.put(projectMetaClass.getName(), projectMetaClass);
+
+			manager.generateSchema(metaClasses, tempFile.getAbsolutePath());
+
+			String generatedContent = new String(Files.readAllBytes(tempFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(generatedContent.contains("FOREIGN KEY (user_id) REFERENCES users(id)"));
+			assertTrue(generatedContent.contains("ON DELETE CASCADE"));
+			assertTrue(generatedContent.contains("ON UPDATE RESTRICT"));
+		} finally {
+			tempFile.delete();
+		}
+	}
+
 	private void deleteRecursively(File file) {
 		if (file == null || !file.exists()) {
 			return;

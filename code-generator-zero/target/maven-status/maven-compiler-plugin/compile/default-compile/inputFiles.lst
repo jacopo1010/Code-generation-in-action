@@ -7,11 +7,16 @@ C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\comandi\FabbricaDiComandiImpl.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\Engine.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\FileUtil.java
+C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\ControllerGenerator.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\FileGenerator.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\FreeMarkerManager.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\GeneratoreDiEntita.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\GeneratoreDiMetaClass.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\JooqGenerator.java
+C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\ModelGenerator.java
+C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\RepositoryGenerator.java
+C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\ServiceGenerator.java
+C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\generator\SqlGenerator.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\io\IO.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\io\IOConsole.java
 C:\Users\Local_admin\git\Code-generation-in-action\code-generator-zero\src\main\java\it\jacopo\www\loader\CaricatoreDiFile.java

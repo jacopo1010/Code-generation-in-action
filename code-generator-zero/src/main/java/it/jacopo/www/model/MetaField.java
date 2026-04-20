@@ -21,6 +21,8 @@ public class MetaField {
 	private String targetUpperBound;
 	private String relationType;
 	private String foreignKeyColumn;
+	private String cascadeOnDelete;
+	private String cascadeOnUpdate;
 	private boolean relation;
 	private boolean collection;
 	private boolean joinTableRequired;
@@ -158,6 +160,22 @@ public class MetaField {
 
 	public void setForeignKeyColumn(String foreignKeyColumn) {
 		this.foreignKeyColumn = foreignKeyColumn;
+	}
+
+	public String getCascadeOnDelete() {
+		return cascadeOnDelete;
+	}
+
+	public void setCascadeOnDelete(String cascadeOnDelete) {
+		this.cascadeOnDelete = cascadeOnDelete;
+	}
+
+	public String getCascadeOnUpdate() {
+		return cascadeOnUpdate;
+	}
+
+	public void setCascadeOnUpdate(String cascadeOnUpdate) {
+		this.cascadeOnUpdate = cascadeOnUpdate;
 	}
 
 	public boolean isRelation() {
