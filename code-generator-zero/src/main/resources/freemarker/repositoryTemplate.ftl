@@ -71,28 +71,24 @@ import java.time.LocalDateTime;
 import java.sql.Timestamp;
 </#if>
 import java.util.List;
-import java.util.Optional;
 
-import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Table;
+import org.jooq.UpdatableRecord;
 import com.zaxxer.hikari.HikariDataSource;
 
 import ${packageModel}.${entityName};
 <#list relationTypesToImport as relationType>
 import ${packageModel}.${relationType};
 </#list>
+import ${packagePersistence}.SimpleRepositoryImpl;
 import static ${jooqPackage}.tables.${tableClassName}.${tableConstant};
 
-public class ${entityName}RepositoryBase {
+public class ${entityName}Repository extends SimpleRepositoryImpl<${entityName}> {
 
-    private final HikariDataSource dataSource;
-
-    protected ${entityName}RepositoryBase(HikariDataSource dataSource) {
-        this.dataSource = dataSource;
-    }
-
-    private DSLContext dsl() {
-        return DSL.using(this.dataSource, org.jooq.SQLDialect.POSTGRES);
+    public ${entityName}Repository(HikariDataSource dataSource) {
+        super(dataSource);
     }
 
 <#if usesTimestamp>
@@ -105,7 +101,8 @@ public class ${entityName}RepositoryBase {
     }
 
 </#if>
-    private ${entityName} toModel(org.jooq.Record record) {
+    @Override
+    protected ${entityName} toModel(Record record) {
         ${entityName} entity = new ${entityName}();
 <#list persistentFields as field>
     <#if field.javaType == "Timestamp">
@@ -125,40 +122,13 @@ public class ${entityName}RepositoryBase {
         return entity;
     }
 
-    public List<${entityName}> findAll() {
-        return this.dsl()
-            .selectFrom(${tableConstant})
-            .fetch()
-            .map(this::toModel);
+    @Override
+    protected Table<?> getTable() {
+        return ${tableConstant};
     }
 
-<#if idField?has_content>
-    public Optional<${entityName}> findById(${idField.javaType} id) {
-        return this.dsl()
-            .selectFrom(${tableConstant})
-            .where(${tableConstant}.${toJooqConstant(resolveColumnName(idField))}.eq(id))
-            .fetchOptional()
-            .map(this::toModel);
-    }
-
-    public boolean existsById(${idField.javaType} id) {
-        return this.dsl().fetchExists(
-            this.dsl().selectOne()
-                .from(${tableConstant})
-                .where(${tableConstant}.${toJooqConstant(resolveColumnName(idField))}.eq(id))
-        );
-    }
-
-    public boolean deleteById(${idField.javaType} id) {
-        return this.dsl()
-            .deleteFrom(${tableConstant})
-            .where(${tableConstant}.${toJooqConstant(resolveColumnName(idField))}.eq(id))
-            .execute() > 0;
-    }
-</#if>
-
-    public ${entityName} save(${entityName} entity) {
-        org.jooq.UpdatableRecord<?> record = this.dsl().newRecord(${tableConstant});
+    @Override
+    protected void bindRecord(UpdatableRecord<?> record, ${entityName} entity) {
 <#list persistentFields as field>
     <#if !(field.name == "id" || resolveColumnName(field) == "id")>
         <#if field.javaType == "Timestamp">
@@ -176,16 +146,21 @@ public class ${entityName}RepositoryBase {
         }
         </#if>
 </#list>
-        record.store();
+    }
+
 <#if idField?has_content>
-        entity.set${idField.name?cap_first}(record.get(${tableConstant}.${toJooqConstant(resolveColumnName(idField))}, ${idField.javaType}.class));
-</#if>
-        return entity;
+    @Override
+    protected void assignId(${entityName} entity, Long id) {
+        entity.set${idField.name?cap_first}(id);
+    }
+
+    @Override
+    protected Field<Long> getIdField() {
+        return ${tableConstant}.${toJooqConstant(resolveColumnName(idField))};
     }
 
     public boolean update(${entityName} entity) {
-<#if idField?has_content>
-        int updated = this.dsl()
+        int updated = this.getDsl()
             .update(${tableConstant})
 <#list persistentFields as field>
     <#if !(field.name == "id" || resolveColumnName(field) == "id")>
@@ -206,18 +181,22 @@ public class ${entityName}RepositoryBase {
             .where(${tableConstant}.${toJooqConstant(resolveColumnName(idField))}.eq(entity.get${idField.name?cap_first}()))
             .execute();
         return updated > 0;
+    }
 <#else>
+    @Override
+    protected void assignId(${entityName} entity, Long id) {
+        throw new UnsupportedOperationException("Assegnazione id non supportata: nessun campo id in ${entityName}");
+    }
+
+    @Override
+    protected Field<Long> getIdField() {
+        throw new UnsupportedOperationException("Campo id non supportato in ${entityName}");
+    }
+
+    public boolean update(${entityName} entity) {
         throw new UnsupportedOperationException("Update non supportato: nessun campo id in ${entityName}");
+    }
 </#if>
-    }
-
-    public void deleteAll() {
-        this.dsl().deleteFrom(${tableConstant}).execute();
-    }
-
-    public long count() {
-        return this.dsl().fetchCount(${tableConstant});
-    }
 
 <#if stringFields?size gt 0>
     public List<${entityName}> findByKeyword(String keyword) {
@@ -225,7 +204,7 @@ public class ${entityName}RepositoryBase {
             return java.util.Collections.emptyList();
         }
         String pattern = "%" + keyword.trim() + "%";
-        return this.dsl()
+        return this.getDsl()
             .selectFrom(${tableConstant})
             .where(
 <#list stringFields as field>
@@ -242,7 +221,7 @@ public class ${entityName}RepositoryBase {
     <#assign relIdField = resolveRelationIdField(relField)>
     <#assign relIdType = relIdField?has_content?then(relIdField.javaType, "Long")>
     public List<${entityName}> findBy${relField.name?cap_first}Id(${relIdType} id) {
-        return this.dsl()
+        return this.getDsl()
             .selectFrom(${tableConstant})
             .where(${tableConstant}.${toJooqConstant(resolveColumnName(relField))}.eq(id))
             .fetch()

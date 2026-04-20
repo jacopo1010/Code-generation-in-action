@@ -60,7 +60,7 @@ public class Engine {
 		File sqlFile = this.createSchemaSql(metaClasses, path);
 		this.createModel(metaClasses, path);
 		JooqGenerator jooq = new JooqGenerator(io);
-		jooq.generateDtoAndDao(sqlFile, properties, path);
+		jooq.generateJooqArtifacts(sqlFile, properties, path);
 		this.createRepository(metaClasses, path);
 		this.createService(metaClasses, path);
 		this.createController(metaClasses, path);

@@ -28,7 +28,8 @@ public class FreeMarkerManager {
 	private static final String CONTROLLER_TEMPLATE_NAME = "freemarker/controllerTemplate.ftl";
 	private static final String CONTROLLER_WRAPPER_TEMPLATE_NAME = "freemarker/controllerWrapperTemplate.ftl";
 	private static final String REPOSITORY_TEMPLATE_NAME = "freemarker/repositoryTemplate.ftl";
-	private static final String REPOSITORY_WRAPPER_TEMPLATE_NAME = "freemarker/repositoryWrapperTemplate.ftl";
+	private static final String SIMPLE_REPOSITORY_TEMPLATE_NAME = "freemarker/simpleRepositoryTemplate.ftl";
+	private static final String SIMPLE_REPOSITORY_IMPL_TEMPLATE_NAME = "freemarker/simpleRepositoryImplTemplate.ftl";
 
 	private Configuration conf;
 	private IO io;
@@ -99,29 +100,44 @@ public class FreeMarkerManager {
 	    try {
 	        this.validateOutputRoot(outputRoot);
 	        this.validateMetaClasses(metaClasses);
+	        this.validatePackage(packageModel);
+	        this.validatePackage(jooqPackage);
+	        this.validatePackage(packageRepository);
+
+	        String packagePersistence = packageRepository + ".persistence";
+	        this.generateSimpleRepositoryInfrastructure(packagePersistence, outputRoot);
 
 	        File outputDirectory = this.prepareOutputDirectory(outputRoot, packageRepository);
 	        for (MetaClass metaClass : metaClasses.values()) {
 	            Map<String, Object> data = new HashMap<>();
 	            data.put("metaClass", metaClass);
 	            data.put("packageModel", packageModel);
-	            data.put("jooqPackage", jooqPackage);       // package Tables/Records
+	            data.put("jooqPackage", jooqPackage);
 	            data.put("packageRepository", packageRepository);
+	            data.put("packagePersistence", packagePersistence);
 	            data.put("metaClasses", metaClasses);
 
-	            File generatedDestination = new File(outputDirectory,
-	                    metaClass.getName() + "RepositoryBase.java");
-	            this.renderTemplateToFile(REPOSITORY_TEMPLATE_NAME, data, generatedDestination);
-	            this.io.stampaMessaggio("Generato: " + generatedDestination.getAbsolutePath());
-
-	            File wrapperDestination = new File(outputDirectory,
+	            File repositoryDestination = new File(outputDirectory,
 	                    metaClass.getName() + "Repository.java");
-	            this.renderTemplateToFileIfAbsent(REPOSITORY_WRAPPER_TEMPLATE_NAME, data, wrapperDestination);
+	            this.renderTemplateToFileIfAbsent(REPOSITORY_TEMPLATE_NAME, data, repositoryDestination);
 
 	        }
 	    } catch (IOException | TemplateException e) {
 	        throw new RuntimeException("Errore generazione Repository", e);
 	    }
+	}
+
+	private void generateSimpleRepositoryInfrastructure(String packagePersistence, String outputRoot)
+			throws IOException, TemplateException {
+		File outputDirectory = this.prepareOutputDirectory(outputRoot, packagePersistence);
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("packagePersistence", packagePersistence);
+
+		File interfaceDestination = new File(outputDirectory, "SimpleRepository.java");
+		this.renderTemplateToFileIfAbsent(SIMPLE_REPOSITORY_TEMPLATE_NAME, data, interfaceDestination);
+
+		File implementationDestination = new File(outputDirectory, "SimpleRepositoryImpl.java");
+		this.renderTemplateToFileIfAbsent(SIMPLE_REPOSITORY_IMPL_TEMPLATE_NAME, data, implementationDestination);
 	}
 	
 	public void generateService(String packageModel, String packageRepository, String packageService, Map<String, MetaClass> metaClasses, String outputRoot) {

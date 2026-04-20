@@ -27,14 +27,7 @@ public class JooqGenerator {
 		super();
 		this.io = io;
 	}
-
-
-	/* metodo che serve per fare generare queste componenti a jooq 
-	 * WORKFLOW: MI SERVONO DRIVE USERNAME PASSWORD DEL DB DA PRENDERE DAL FILE PROPERTIES
-	 * PRIMA DI INTERROGARE LO SCHEMA ESSO DEVE ESSERE PRESENTE NEL DB QUINDI USERO' FLYWAY
-	 * PER LA MIGRATION e poi GENERO IL TUTTO CON JOOQ*/
-
-	public void generateDtoAndDao(File sqlFile, Properties target, String applicationPropertiesPath) {
+	public void generateJooqArtifacts(File sqlFile, Properties target, String applicationPropertiesPath) {
 		String jooqPackage = target.getProperty(PropertiesCostanti.JOOQ_OUTPUT_PACKAGE);
 		String projectPath = FileUtil.resolveJavaOutputPath(
 				applicationPropertiesPath,
@@ -49,14 +42,14 @@ public class JooqGenerator {
 					.withGenerator(new Generator()
 							.withDatabase(new Database()
 									.withName("org.jooq.meta.extensions.ddl.DDLDatabase")
-									.withProperties(
-											new Property().withKey("scripts").withValue(sqlFile.getAbsolutePath()),
-											new Property().withKey("sort").withValue("semantic")
-											))
+							.withProperties(
+									new Property().withKey("scripts").withValue(sqlFile.getAbsolutePath()),
+									new Property().withKey("sort").withValue("semantic")
+									))
 							.withGenerate(new Generate()
-									.withPojos(true)
+									.withPojos(false)
 									.withJavaTimeTypes(true)
-									.withDaos(true))
+									.withDaos(false))
 							.withTarget(new Target()
 									.withPackageName(jooqPackage)
 									.withDirectory(projectPath)));

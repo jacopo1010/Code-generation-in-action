@@ -9,14 +9,14 @@
 </#list>
 package ${packageService};
 
-import ${packageRepository}.${entityName}RepositoryBase;
+import ${packageRepository}.${entityName}Repository;
 <#list relationTypesToImport as relationType>
-import ${packageRepository}.${relationType}RepositoryBase;
+import ${packageRepository}.${relationType}Repository;
 </#list>
 
 public class ${entityName}Service extends ${entityName}ServiceBase {
 
-    public ${entityName}Service(${entityName}RepositoryBase repository<#list relationTypesToImport as relationType>, ${relationType}RepositoryBase ${relationType?uncap_first}Repository</#list>) {
+    public ${entityName}Service(${entityName}Repository repository<#list relationTypesToImport as relationType>, ${relationType}Repository ${relationType?uncap_first}Repository</#list>) {
         super(repository<#list relationTypesToImport as relationType>, ${relationType?uncap_first}Repository</#list>);
     }
 }

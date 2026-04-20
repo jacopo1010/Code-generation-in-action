@@ -123,20 +123,31 @@ public class FreeMarkerManagerTest extends TestCase {
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\repository\\ClienteRepositoryBase.java");
-			File wrapperFile = new File(tempDirectory, "it\\test\\repository\\ClienteRepository.java");
+			File generatedFile = new File(tempDirectory, "it\\test\\repository\\ClienteRepository.java");
+			File simpleRepositoryFile = new File(tempDirectory,
+					"it\\test\\repository\\persistence\\SimpleRepository.java");
+			File simpleRepositoryImplFile = new File(tempDirectory,
+					"it\\test\\repository\\persistence\\SimpleRepositoryImpl.java");
 			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
-			assertTrue("Repository custom non generato nel path atteso", wrapperFile.isFile());
+			assertTrue("SimpleRepository non generato nel path atteso", simpleRepositoryFile.isFile());
+			assertTrue("SimpleRepositoryImpl non generato nel path atteso", simpleRepositoryImplFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
+			String simpleRepositoryContent = new String(Files.readAllBytes(simpleRepositoryFile.toPath()),
+					StandardCharsets.UTF_8);
+			String simpleRepositoryImplContent = new String(Files.readAllBytes(simpleRepositoryImplFile.toPath()),
+					StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.repository;"));
 			assertTrue(generatedContent.contains("import it.test.model.Cliente;"));
+			assertTrue(generatedContent.contains("import it.test.repository.persistence.SimpleRepositoryImpl;"));
 			assertTrue(generatedContent.contains("import static it.test.jooq.tables.Cliente.CLIENTE;"));
-			assertTrue(generatedContent.contains("public class ClienteRepositoryBase"));
-			assertTrue(generatedContent.contains("protected ClienteRepositoryBase(HikariDataSource dataSource)"));
-			assertTrue(generatedContent.contains("org.jooq.UpdatableRecord<?> record = this.dsl().newRecord(CLIENTE);"));
-			assertFalse(generatedContent.contains("var record ="));
-			assertTrue(wrapperContent.contains("public class ClienteRepository extends ClienteRepositoryBase"));
+			assertTrue(generatedContent.contains("public class ClienteRepository extends SimpleRepositoryImpl<Cliente>"));
+			assertTrue(generatedContent.contains("public ClienteRepository(HikariDataSource dataSource)"));
+			assertTrue(generatedContent.contains("protected Table<?> getTable()"));
+			assertTrue(generatedContent.contains("protected void bindRecord(UpdatableRecord<?> record, Cliente entity)"));
+			assertTrue(generatedContent.contains("protected Field<Long> getIdField()"));
+			assertFalse(generatedContent.contains("deleteById("));
+			assertTrue(simpleRepositoryContent.contains("public interface SimpleRepository<T>"));
+			assertTrue(simpleRepositoryImplContent.contains("public abstract class SimpleRepositoryImpl<T> implements SimpleRepository<T>"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -182,7 +193,7 @@ public class FreeMarkerManagerTest extends TestCase {
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\repository\\CorsoRepositoryBase.java");
+			File generatedFile = new File(tempDirectory, "it\\test\\repository\\CorsoRepository.java");
 			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("public List<Corso> findByStudenteId(Long id)"));
@@ -218,7 +229,13 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			File customFile = new File(tempDirectory, "it\\test\\repository\\ClienteRepository.java");
 			Files.write(customFile.toPath(),
-					("// mio codice custom\r\npublic class ClienteRepository extends ClienteRepositoryBase {}\r\n")
+					("// mio codice custom\r\npublic class ClienteRepository {}\r\n")
+							.getBytes(StandardCharsets.UTF_8));
+
+			File simpleRepositoryFile = new File(tempDirectory,
+					"it\\test\\repository\\persistence\\SimpleRepository.java");
+			Files.write(simpleRepositoryFile.toPath(),
+					("// custom infra\r\npublic interface SimpleRepository<T> {}\r\n")
 							.getBytes(StandardCharsets.UTF_8));
 
 			manager.generateRepository(
@@ -230,6 +247,9 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			String customContent = new String(Files.readAllBytes(customFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(customContent.contains("// mio codice custom"));
+			String simpleRepositoryContent = new String(Files.readAllBytes(simpleRepositoryFile.toPath()),
+					StandardCharsets.UTF_8);
+			assertTrue(simpleRepositoryContent.contains("// custom infra"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -294,10 +314,8 @@ public class FreeMarkerManagerTest extends TestCase {
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\repository\\TaskRepositoryBase.java");
-			File wrapperFile = new File(tempDirectory, "it\\test\\repository\\TaskRepository.java");
+			File generatedFile = new File(tempDirectory, "it\\test\\repository\\TaskRepository.java");
 			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
-			assertTrue("Repository custom non generato nel path atteso", wrapperFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("import java.time.LocalDateTime;"));
 			assertTrue(generatedContent.contains("import java.sql.Timestamp;"));
@@ -306,6 +324,7 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("entity.setCreationTimeStamp(this.toTimestamp(record.get(TASKS.CREATION_TIME_STAMP, LocalDateTime.class)));"));
 			assertTrue(generatedContent.contains("entity.setLastUpdateTimeStamp(this.toTimestamp(record.get(TASKS.LAST_UPDATE_TIME_STAMP, LocalDateTime.class)));"));
 			assertTrue(generatedContent.contains("import it.test.model.Project;"));
+			assertTrue(generatedContent.contains("import it.test.repository.persistence.SimpleRepositoryImpl;"));
 			assertTrue(generatedContent.contains("import static it.test.jooq.tables.Tasks.TASKS;"));
 			assertTrue(generatedContent.contains("record.set(TASKS.CREATION_TIME_STAMP, this.toLocalDateTime(entity.getCreationTimeStamp()));"));
 			assertTrue(generatedContent.contains("record.set(TASKS.LAST_UPDATE_TIME_STAMP, this.toLocalDateTime(entity.getLastUpdateTimeStamp()));"));
@@ -317,8 +336,7 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("Project contain = new Project();"));
 			assertTrue(generatedContent.contains("contain.setId(record.get(TASKS.PROJECT_ID, Long.class));"));
 			assertTrue(generatedContent.contains("entity.setContain(contain);"));
-			assertTrue(new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8)
-					.contains("public class TaskRepository extends TaskRepositoryBase"));
+			assertTrue(generatedContent.contains("public class TaskRepository extends SimpleRepositoryImpl<Task>"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -360,10 +378,10 @@ public class FreeMarkerManagerTest extends TestCase {
 			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.service;"));
 			assertTrue(generatedContent.contains("import it.test.model.Cliente;"));
-			assertTrue(generatedContent.contains("import it.test.repository.ClienteRepositoryBase;"));
+			assertTrue(generatedContent.contains("import it.test.repository.ClienteRepository;"));
 			assertTrue(generatedContent.contains("public class ClienteServiceBase"));
-			assertTrue(generatedContent.contains("protected final ClienteRepositoryBase repository;"));
-			assertTrue(generatedContent.contains("protected ClienteServiceBase(ClienteRepositoryBase repository)"));
+			assertTrue(generatedContent.contains("protected final ClienteRepository repository;"));
+			assertTrue(generatedContent.contains("protected ClienteServiceBase(ClienteRepository repository)"));
 			assertTrue(generatedContent.contains("this.repository = repository;"));
 			assertTrue(generatedContent.contains("private void validateEntityForWrite(Cliente entity)"));
 			assertTrue(generatedContent.contains("if (entity == null)"));
@@ -373,8 +391,9 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id obbligatorio per l'aggiornamento di Cliente\");"));
 			assertTrue(generatedContent.contains("public List<Cliente> findByKeyword(String keyword)"));
 			assertTrue(generatedContent.contains("return this.repository.findByKeyword(keyword);"));
+			assertTrue(generatedContent.contains("return this.repository.delete(id);"));
 			assertTrue(wrapperContent.contains("public class ClienteService extends ClienteServiceBase"));
-			assertTrue(wrapperContent.contains("public ClienteService(ClienteRepositoryBase repository)"));
+			assertTrue(wrapperContent.contains("public ClienteService(ClienteRepository repository)"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -424,9 +443,9 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("import it.test.model.Studente;"));
-			assertTrue(generatedContent.contains("import it.test.repository.StudenteRepositoryBase;"));
-			assertTrue(generatedContent.contains("protected final StudenteRepositoryBase studenteRepository;"));
-			assertTrue(generatedContent.contains("StudenteRepositoryBase studenteRepository"));
+			assertTrue(generatedContent.contains("import it.test.repository.StudenteRepository;"));
+			assertTrue(generatedContent.contains("protected final StudenteRepository studenteRepository;"));
+			assertTrue(generatedContent.contains("StudenteRepository studenteRepository"));
 			assertTrue(generatedContent.contains("Studente studente = entity.getStudente();"));
 			assertTrue(generatedContent.contains("if (studente != null)"));
 			assertTrue(generatedContent.contains("if (studente.getId() == null)"));
@@ -540,9 +559,9 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("import it.test.model.Project;"));
-			assertTrue(generatedContent.contains("import it.test.repository.ProjectRepositoryBase;"));
-			assertTrue(generatedContent.contains("protected final ProjectRepositoryBase projectRepository;"));
-			assertTrue(generatedContent.contains("ProjectRepositoryBase projectRepository"));
+			assertTrue(generatedContent.contains("import it.test.repository.ProjectRepository;"));
+			assertTrue(generatedContent.contains("protected final ProjectRepository projectRepository;"));
+			assertTrue(generatedContent.contains("ProjectRepository projectRepository"));
 			assertTrue(generatedContent.contains("Project contain = entity.getContain();"));
 			assertTrue(generatedContent.contains("if (contain == null || contain.getId() == null)"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Project associato obbligatorio per Task\");"));

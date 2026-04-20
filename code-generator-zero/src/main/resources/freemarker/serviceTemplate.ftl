@@ -74,19 +74,19 @@ import ${packageModel}.${entityName};
 <#list relationTypesToImport as relationType>
 import ${packageModel}.${relationType};
 </#list>
-import ${packageRepository}.${entityName}RepositoryBase;
+import ${packageRepository}.${entityName}Repository;
 <#list relationTypesToImport as relationType>
-import ${packageRepository}.${relationType}RepositoryBase;
+import ${packageRepository}.${relationType}Repository;
 </#list>
 
 public class ${entityName}ServiceBase {
 
-    protected final ${entityName}RepositoryBase repository;
+    protected final ${entityName}Repository repository;
 <#list manyToOneFields as relationField>
-    protected final ${relationField.javaType}RepositoryBase ${relationField.javaType?uncap_first}Repository;
+    protected final ${relationField.javaType}Repository ${relationField.javaType?uncap_first}Repository;
 </#list>
 
-    protected ${entityName}ServiceBase(${entityName}RepositoryBase repository<#list manyToOneFields as relationField>, ${relationField.javaType}RepositoryBase ${relationField.javaType?uncap_first}Repository</#list>) {
+    protected ${entityName}ServiceBase(${entityName}Repository repository<#list manyToOneFields as relationField>, ${relationField.javaType}Repository ${relationField.javaType?uncap_first}Repository</#list>) {
         this.repository = repository;
 <#list manyToOneFields as relationField>
         this.${relationField.javaType?uncap_first}Repository = ${relationField.javaType?uncap_first}Repository;
@@ -150,7 +150,7 @@ public class ${entityName}ServiceBase {
 
 <#if idField?has_content>
     public boolean delete(${idField.javaType} id) {
-        return this.repository.deleteById(id);
+        return this.repository.delete(id);
     }
 
 </#if>

@@ -172,7 +172,7 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		metaField.setJavaType(this.resolveJavaType(resolvedType));
 		metaField.setSqlType(this.resolveSqlType(resolvedType));
 		metaField.setRelation(false);
-		metaField.setCollection(false);
+		metaField.setCollection(this.isCollectionType(resolvedType));
 		metaField.setJoinTableRequired(false);
 		metaField.setRelationType(null);
 		metaField.setForeignKeyColumn(null);
@@ -267,35 +267,53 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 	}
 
 	private String resolveJavaType(String resolvedType) {
-		if ("string".equals(resolvedType)) {
+		String normalizedType = this.normalizeTypeName(resolvedType);
+		if ("string".equals(normalizedType)) {
 			return "String";
 		}
-		if ("long".equals(resolvedType)) {
+		if ("long".equals(normalizedType)) {
 			return "Long";
 		}
-		if ("boolean".equals(resolvedType)) {
+		if ("boolean".equals(normalizedType)) {
 			return "Boolean";
 		}
-		if ("timestamp".equals(resolvedType)) {
+		if ("timestamp".equals(normalizedType)) {
 			return "Timestamp";
+		}
+		if ("int".equals(normalizedType) || "integer".equals(normalizedType)) {
+			return "Integer";
+		}
+		if ("list".equals(normalizedType)) {
+			return "Object";
 		}
 		return resolvedType;
 	}
 
 	private String resolveSqlType(String resolvedType) {
-		if ("string".equals(resolvedType)) {
+		String normalizedType = this.normalizeTypeName(resolvedType);
+		if ("string".equals(normalizedType)) {
 			return "VARCHAR";
 		}
-		if ("long".equals(resolvedType)) {
+		if ("long".equals(normalizedType)) {
 			return "BIGINT";
 		}
-		if ("boolean".equals(resolvedType)) {
+		if ("boolean".equals(normalizedType)) {
 			return "BOOLEAN";
 		}
-		if ("timestamp".equals(resolvedType)) {
+		if ("timestamp".equals(normalizedType)) {
 			return "TIMESTAMP";
 		}
+		if ("int".equals(normalizedType) || "integer".equals(normalizedType)) {
+			return "INTEGER";
+		}
+		if ("list".equals(normalizedType)) {
+			return null;
+		}
 		return null;
+	}
+
+	private boolean isCollectionType(String resolvedType) {
+		return "list".equals(this.normalizeTypeName(resolvedType));
 	}
 
 	private boolean isRequiredAttribute(Map<String, String> tags) {
@@ -435,6 +453,13 @@ public class GeneratoreDiMetaClass implements GeneratoreDiEntita{
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException("UTF-8 non supportato dalla JVM", e);
 		}
+	}
+
+	private String normalizeTypeName(String resolvedType) {
+		if (resolvedType == null) {
+			return null;
+		}
+		return resolvedType.trim().toLowerCase();
 	}
 
 	private String resolveDocumentation(Map<String, String> tags, String fallbackName) {
