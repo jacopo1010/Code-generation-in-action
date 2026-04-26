@@ -3,7 +3,7 @@ package ${packageRepository};
 
 import java.util.List;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 public interface SimpleRepository<T> {
 

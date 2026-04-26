@@ -12,7 +12,6 @@ import it.jacopo.www.model.MetaClass;
 public class ModelGenerator extends FileGenerator {
 
 	private static final String MODEL_TEMPLATE_NAME = "freemarker/modelTemplate.ftl";
-	private static final String MODEL_WRAPPER_TEMPLATE_NAME = "freemarker/modelWrapperTemplate.ftl";
 
 	public ModelGenerator(IO io) {
 		super(io);
@@ -31,12 +30,8 @@ public class ModelGenerator extends FileGenerator {
 				data.put("metaClasses", metaClasses);
 				data.put("packageName", packageModel);
 
-				File generatedDestination = new File(outputDirectory, metaClass.getName() + "Base.java");
-				this.renderTemplateToFile(MODEL_TEMPLATE_NAME, data, generatedDestination);
-				this.getIo().stampaMessaggio("Generato: " + generatedDestination.getAbsolutePath());
-
-				File wrapperDestination = new File(outputDirectory, metaClass.getName() + ".java");
-				this.renderTemplateToFileIfAbsent(MODEL_WRAPPER_TEMPLATE_NAME, data, wrapperDestination);
+				File generatedDestination = new File(outputDirectory, metaClass.getName() + ".java");
+				this.renderTemplateToFileIfAbsent(MODEL_TEMPLATE_NAME, data, generatedDestination);
 			}
 			this.getIo().stampaMessaggio("Generazione completata con successo!");
 		} catch (IOException | TemplateException e) {

@@ -14,7 +14,7 @@ import junit.framework.TestCase;
 
 public class FreeMarkerManagerTest extends TestCase {
 
-	public void testGenerateModelUsaGenerationGapEPreservaCustom() throws Exception {
+	public void testGenerateModelGeneraUnaSolaEntityEPreservaCustom() throws Exception {
 		File tempDirectory = Files.createTempDirectory("model-generation-gap-test").toFile();
 		try {
 			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
@@ -36,31 +36,25 @@ public class FreeMarkerManagerTest extends TestCase {
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			File generatedFile = new File(tempDirectory, "it\\test\\model\\ClienteBase.java");
-			File wrapperFile = new File(tempDirectory, "it\\test\\model\\Cliente.java");
-			assertTrue("Model base non generato nel path atteso", generatedFile.isFile());
-			assertTrue("Model custom non generato nel path atteso", wrapperFile.isFile());
+			File generatedFile = new File(tempDirectory, "it\\test\\model\\Cliente.java");
+			assertTrue("Model non generato nel path atteso", generatedFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.model;"));
-			assertTrue(generatedContent.contains("@MappedSuperclass"));
-			assertTrue(generatedContent.contains("public class ClienteBase"));
-			assertTrue(generatedContent.contains("public ClienteBase()"));
+			assertTrue(generatedContent.contains("import jakarta.persistence.Entity;"));
+			assertTrue(generatedContent.contains("import jakarta.persistence.Table;"));
+			assertTrue(generatedContent.contains("@Entity"));
+			assertTrue(generatedContent.contains("@Table(name = \"cliente\")"));
+			assertTrue(generatedContent.contains("public class Cliente"));
+			assertTrue(generatedContent.contains("public Cliente()"));
 			assertTrue(generatedContent.contains("@Id"));
 			assertTrue(generatedContent.contains("@GeneratedValue(strategy = GenerationType.IDENTITY)"));
 			assertTrue(generatedContent.contains("@Column(name = \"id\")"));
 			assertTrue(generatedContent.contains("private Long id;"));
 			assertTrue(generatedContent.contains("public Long getId()"));
-			assertTrue(wrapperContent.contains("import jakarta.persistence.Entity;"));
-			assertTrue(wrapperContent.contains("@Entity"));
-			assertTrue(wrapperContent.contains("@Table(name = \"cliente\")"));
-			assertTrue(wrapperContent.contains("public class Cliente extends ClienteBase"));
-			assertTrue(wrapperContent.contains("public Cliente()"));
-			assertTrue(wrapperContent.contains("super();"));
 
-			Files.write(wrapperFile.toPath(),
-					("// mio codice custom\r\npublic class Cliente extends ClienteBase {}\r\n")
+			Files.write(generatedFile.toPath(),
+					("// mio codice custom\r\npublic class Cliente {}\r\n")
 							.getBytes(StandardCharsets.UTF_8));
 
 			manager.generateModel(
@@ -68,8 +62,8 @@ public class FreeMarkerManagerTest extends TestCase {
 					metaClasses,
 					tempDirectory.getAbsolutePath());
 
-			String preservedWrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(preservedWrapperContent.contains("// mio codice custom"));
+			String preservedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(preservedContent.contains("// mio codice custom"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -148,13 +142,13 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertFalse(generatedContent.contains("public boolean update(Cliente entity)"));
 			assertFalse(generatedContent.contains("deleteById("));
 			assertTrue(simpleRepositoryContent.contains("package it.test.repository;"));
-			assertTrue(simpleRepositoryContent.contains("import javax.persistence.EntityManager;"));
+			assertTrue(simpleRepositoryContent.contains("import jakarta.persistence.EntityManager;"));
 			assertTrue(simpleRepositoryContent.contains("public interface SimpleRepository<T>"));
 			assertTrue(simpleRepositoryContent.contains("boolean update(T entity);"));
 			assertTrue(simpleRepositoryContent.contains("T findById(Long id);"));
 			assertTrue(simpleRepositoryImplContent.contains("package it.test.repository;"));
 			assertTrue(simpleRepositoryImplContent.contains("public class SimpleRepositoryImpl<T> implements SimpleRepository<T>"));
-			assertTrue(simpleRepositoryImplContent.contains("import javax.persistence.EntityManager;"));
+			assertTrue(simpleRepositoryImplContent.contains("import jakarta.persistence.EntityManager;"));
 			assertFalse(simpleRepositoryImplContent.contains("JpaUtil"));
 			assertTrue(simpleRepositoryImplContent.contains("return this.em;"));
 			assertTrue(simpleRepositoryImplContent.contains("public boolean update(T entity)"));
@@ -247,9 +241,9 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateModel("it.test.model", metaClasses, tempDirectory.getAbsolutePath());
 
-			File projectBaseFile = new File(tempDirectory, "it\\test\\model\\ProjectBase.java");
-			File userBaseFile = new File(tempDirectory, "it\\test\\model\\UserBase.java");
-			File tagBaseFile = new File(tempDirectory, "it\\test\\model\\TagBase.java");
+			File projectBaseFile = new File(tempDirectory, "it\\test\\model\\Project.java");
+			File userBaseFile = new File(tempDirectory, "it\\test\\model\\User.java");
+			File tagBaseFile = new File(tempDirectory, "it\\test\\model\\Tag.java");
 
 			String projectContent = new String(Files.readAllBytes(projectBaseFile.toPath()), StandardCharsets.UTF_8);
 			String userContent = new String(Files.readAllBytes(userBaseFile.toPath()), StandardCharsets.UTF_8);
@@ -430,7 +424,7 @@ public class FreeMarkerManagerTest extends TestCase {
 			File generatedFile = new File(tempDirectory, "it\\test\\repository\\TaskRepository.java");
 			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(generatedContent.contains("import javax.persistence.TypedQuery;"));
+			assertTrue(generatedContent.contains("import jakarta.persistence.TypedQuery;"));
 			assertTrue(generatedContent.contains("import java.util.Collections;"));
 			assertTrue(generatedContent.contains("public List<Task> findByKeyword(String keyword)"));
 			assertTrue(generatedContent.contains("LOWER(t.name) LIKE :keyword"));

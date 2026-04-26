@@ -100,9 +100,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 </#if>
 <#if usesHibernateFetch>
@@ -123,8 +124,9 @@ import org.hibernate.annotations.OnDeleteAction;
  * @author ${metaClass.author}
 </#if>
  */
-@MappedSuperclass
-public class ${metaClass.name}Base {
+@Entity
+@Table(name = "${resolveTableName(metaClass)}")
+public class ${metaClass.name} {
 
     // --- ATTRIBUTI SEMPLICI ---
 <#list fields as field>
@@ -183,7 +185,7 @@ public class ${metaClass.name}Base {
 </#list>
 
     // --- COSTRUTTORE ---
-    public ${metaClass.name}Base() {
+    public ${metaClass.name}() {
     }
 
     // --- GETTER E SETTER ---
