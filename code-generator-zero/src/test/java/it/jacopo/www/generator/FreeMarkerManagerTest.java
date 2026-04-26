@@ -249,17 +249,17 @@ public class FreeMarkerManagerTest extends TestCase {
 			String userContent = new String(Files.readAllBytes(userBaseFile.toPath()), StandardCharsets.UTF_8);
 			String tagContent = new String(Files.readAllBytes(tagBaseFile.toPath()), StandardCharsets.UTF_8);
 
-			assertTrue(projectContent.contains("@ManyToOne(optional = false, cascade = { CascadeType.MERGE, CascadeType.PERSIST })"));
+			assertTrue(projectContent.contains("@ManyToOne(fetch = FetchType.LAZY, optional = false, cascade = { CascadeType.MERGE, CascadeType.PERSIST })"));
 			assertTrue(projectContent.contains("@Fetch(FetchMode.SELECT)"));
 			assertTrue(projectContent.contains("@JoinColumn(name = \"user_id\", nullable = false)"));
 			assertTrue(projectContent.contains("@OnDelete(action = OnDeleteAction.CASCADE)"));
-			assertTrue(projectContent.contains("@ManyToMany(cascade = { CascadeType.ALL })"));
+			assertTrue(projectContent.contains("@ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.ALL })"));
 			assertTrue(projectContent.contains("name = \"projects_tags\""));
 			assertTrue(projectContent.contains("joinColumns = @JoinColumn(name = \"projects_id\")"));
 			assertTrue(projectContent.contains("inverseJoinColumns = @JoinColumn(name = \"tags_id\")"));
-			assertTrue(userContent.contains("@OneToMany(mappedBy = \"owner\")"));
+			assertTrue(userContent.contains("@OneToMany(mappedBy = \"owner\", fetch = FetchType.LAZY)"));
 			assertTrue(userContent.contains("@Fetch(FetchMode.SELECT)"));
-			assertTrue(tagContent.contains("@ManyToMany(mappedBy = \"members\")"));
+			assertTrue(tagContent.contains("@ManyToMany(fetch = FetchType.LAZY, mappedBy = \"members\")"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}

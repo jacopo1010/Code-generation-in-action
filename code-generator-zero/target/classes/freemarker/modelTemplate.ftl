@@ -93,6 +93,7 @@ import java.util.ArrayList;
 <#if usesJpa>
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -138,7 +139,7 @@ public class ${metaClass.name} {
      */
     <#if field.relation>
     <#if field.relationType == "MANY_TO_ONE">
-    @ManyToOne(<#if field.required>optional = false<#if hasJpaCascade(field)>, </#if></#if><#if hasJpaCascade(field)>cascade = { ${resolveJpaCascade(field)} }</#if>)
+    @ManyToOne(fetch = FetchType.LAZY<#if field.required || hasJpaCascade(field)>, </#if><#if field.required>optional = false<#if hasJpaCascade(field)>, </#if></#if><#if hasJpaCascade(field)>cascade = { ${resolveJpaCascade(field)} }</#if>)
     @Fetch(FetchMode.SELECT)
     @JoinColumn(name = "${resolveColumnName(field)}"<#if field.required>, nullable = false</#if>)
     <#if field.cascadeOnDelete?? && field.cascadeOnDelete == "CASCADE">
@@ -146,7 +147,7 @@ public class ${metaClass.name} {
     </#if>
     private ${field.javaType} ${field.name};
     <#elseif field.relationType == "ONE_TO_ONE">
-    @OneToOne(<#if field.required>optional = false<#if hasJpaCascade(field)>, </#if></#if><#if hasJpaCascade(field)>cascade = { ${resolveJpaCascade(field)} }</#if>)
+    @OneToOne(fetch = FetchType.LAZY<#if field.required || hasJpaCascade(field)>, </#if><#if field.required>optional = false<#if hasJpaCascade(field)>, </#if></#if><#if hasJpaCascade(field)>cascade = { ${resolveJpaCascade(field)} }</#if>)
     @Fetch(FetchMode.SELECT)
     @JoinColumn(name = "${resolveColumnName(field)}"<#if field.required>, nullable = false</#if>)
     <#if field.cascadeOnDelete?? && field.cascadeOnDelete == "CASCADE">
@@ -154,11 +155,11 @@ public class ${metaClass.name} {
     </#if>
     private ${field.javaType} ${field.name};
     <#elseif field.relationType == "ONE_TO_MANY">
-    @OneToMany(mappedBy = "${resolveMappedBy(field)}"<#if hasJpaCascade(field)>, cascade = { ${resolveJpaCascade(field)} }</#if>)
+    @OneToMany(mappedBy = "${resolveMappedBy(field)}", fetch = FetchType.LAZY<#if hasJpaCascade(field)>, cascade = { ${resolveJpaCascade(field)} }</#if>)
     @Fetch(FetchMode.SELECT)
     private List<${field.javaType}> ${field.name} = new ArrayList<>();
     <#elseif field.relationType == "MANY_TO_MANY">
-    @ManyToMany(<#if !isOwningManyToMany(field)>mappedBy = "${resolveMappedBy(field)}"<#if hasJpaCascade(field)>, </#if></#if><#if hasJpaCascade(field)>cascade = { ${resolveJpaCascade(field)} }</#if>)
+    @ManyToMany(fetch = FetchType.LAZY<#if !isOwningManyToMany(field) || hasJpaCascade(field)>, </#if><#if !isOwningManyToMany(field)>mappedBy = "${resolveMappedBy(field)}"<#if hasJpaCascade(field)>, </#if></#if><#if hasJpaCascade(field)>cascade = { ${resolveJpaCascade(field)} }</#if>)
     @Fetch(FetchMode.SELECT)
     <#if isOwningManyToMany(field)>
     @JoinTable(
