@@ -103,11 +103,11 @@ public class ${entityName}ServiceBase {
 
 <#if idField?has_content>
     public Optional<${entityName}> findById(${idField.javaType} id) {
-        return this.repository.findById(id);
+        return Optional.ofNullable(this.repository.findById(id));
     }
 
     public boolean existsById(${idField.javaType} id) {
-        return this.repository.existsById(id);
+        return this.repository.existingById(id);
     }
 </#if>
 
@@ -150,7 +150,12 @@ public class ${entityName}ServiceBase {
 
 <#if idField?has_content>
     public boolean delete(${idField.javaType} id) {
-        return this.repository.delete(id);
+        ${entityName} entity = this.repository.findById(id);
+        if (entity == null) {
+            return false;
+        }
+        this.repository.delete(entity);
+        return true;
     }
 
 </#if>
@@ -208,7 +213,7 @@ public class ${entityName}ServiceBase {
             if (${relationField.name}.${relIdGetter} == null) {
                 throw new IllegalArgumentException("Id di ${relationField.javaType} associato obbligatorio");
             }
-            if (!this.${relationField.javaType?uncap_first}Repository.existsById(${relationField.name}.${relIdGetter})) {
+            if (!this.${relationField.javaType?uncap_first}Repository.existingById(${relationField.name}.${relIdGetter})) {
                 throw new IllegalArgumentException("${relationField.javaType} associato non esistente: "
                     + ${relationField.name}.${relIdGetter});
             }

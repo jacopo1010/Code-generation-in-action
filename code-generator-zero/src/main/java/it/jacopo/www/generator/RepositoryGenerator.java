@@ -19,13 +19,12 @@ public class RepositoryGenerator extends FileGenerator {
 		super(io);
 	}
 
-	public void generate(String packageModel, String jooqPackage, String packageRepository,
+	public void generate(String packageModel, String packageRepository,
 			Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
 			this.validateOutputRoot(outputRoot);
 			this.validateMetaClasses(metaClasses);
 			this.validatePackage(packageModel);
-			this.validatePackage(jooqPackage);
 			this.validatePackage(packageRepository);
 
 			this.generateSimpleRepositoryInfrastructure(packageRepository, outputRoot);
@@ -35,7 +34,6 @@ public class RepositoryGenerator extends FileGenerator {
 				Map<String, Object> data = new HashMap<String, Object>();
 				data.put("metaClass", metaClass);
 				data.put("packageModel", packageModel);
-				data.put("jooqPackage", jooqPackage);
 				data.put("packageRepository", packageRepository);
 				data.put("metaClasses", metaClasses);
 

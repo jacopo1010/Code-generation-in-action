@@ -49,7 +49,6 @@
 package ${packageController};
 
 import java.net.URI;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
@@ -79,21 +78,21 @@ public class ${entityName}ControllerBase {
     }
 
     @GET
-    public Response getAll${entityName}s() throws SQLException {
+    public Response getAll${entityName}s() {
         List<${entityName}> ${entityName?uncap_first}s = this.${entityName?uncap_first}Service.findAll();
         return Response.ok(${entityName?uncap_first}s).build();
     }
 
     @GET
     @Path("/count")
-    public Response count${entityName}s() throws SQLException {
+    public Response count${entityName}s() {
         return Response.ok(this.${entityName?uncap_first}Service.count()).build();
     }
 
 <#if idField?has_content>
     @GET
     @Path("/exists/{id}")
-    public Response exists${entityName}(@PathParam("id") ${idField.javaType} id) throws SQLException {
+    public Response exists${entityName}(@PathParam("id") ${idField.javaType} id) {
         if (id == null) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
@@ -104,7 +103,7 @@ public class ${entityName}ControllerBase {
 <#if stringFields?size gt 0>
     @GET
     @Path("/search")
-    public Response findByKeyword(@QueryParam("keyword") String keyword) throws SQLException {
+    public Response findByKeyword(@QueryParam("keyword") String keyword) {
         if (keyword == null || keyword.isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
@@ -115,7 +114,7 @@ public class ${entityName}ControllerBase {
 <#if idField?has_content>
     @GET
     @Path("/{id}")
-    public Response get${entityName}(@PathParam("id") ${idField.javaType} id) throws SQLException {
+    public Response get${entityName}(@PathParam("id") ${idField.javaType} id) {
         Optional<${entityName}> ${entityName?uncap_first} = this.${entityName?uncap_first}Service.findById(id);
         if (!${entityName?uncap_first}.isPresent()) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -125,7 +124,7 @@ public class ${entityName}ControllerBase {
 
 </#if>
     @POST
-    public Response create${entityName}(${entityName} ${entityName?uncap_first}) throws SQLException {
+    public Response create${entityName}(${entityName} ${entityName?uncap_first}) {
         try {
             ${entityName} created = this.${entityName?uncap_first}Service.save(${entityName?uncap_first});
 <#if idField?has_content>
@@ -144,7 +143,7 @@ public class ${entityName}ControllerBase {
 <#if idField?has_content>
     @PUT
     @Path("/{id}")
-    public Response update${entityName}(@PathParam("id") ${idField.javaType} id, ${entityName} ${entityName?uncap_first}) throws SQLException {
+    public Response update${entityName}(@PathParam("id") ${idField.javaType} id, ${entityName} ${entityName?uncap_first}) {
         if (${entityName?uncap_first} == null) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
@@ -162,7 +161,7 @@ public class ${entityName}ControllerBase {
 
 </#if>
     @DELETE
-    public Response deleteAll() throws SQLException {
+    public Response deleteAll() {
         this.${entityName?uncap_first}Service.deleteAll();
         return Response.noContent().build();
     }
@@ -170,7 +169,7 @@ public class ${entityName}ControllerBase {
 <#if idField?has_content>
     @DELETE
     @Path("/{id}")
-    public Response deleteById(@PathParam("id") ${idField.javaType} id) throws SQLException {
+    public Response deleteById(@PathParam("id") ${idField.javaType} id) {
         if (id == null) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
@@ -190,7 +189,7 @@ public class ${entityName}ControllerBase {
     </#if>
     @GET
     @Path("/by-${toSqlName(relationField.name)}/{${relationField.name}Id}")
-    public Response findBy${relationField.name?cap_first}Id(@PathParam("${relationField.name}Id") ${relationIdType} ${relationField.name}Id) throws SQLException {
+    public Response findBy${relationField.name?cap_first}Id(@PathParam("${relationField.name}Id") ${relationIdType} ${relationField.name}Id) {
         if (${relationField.name}Id == null) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }

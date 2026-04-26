@@ -2,27 +2,28 @@
 package ${packageRepository};
 
 import java.util.List;
-import java.util.Optional;
 
-import org.jooq.DSLContext;
+import javax.persistence.EntityManager;
 
 public interface SimpleRepository<T> {
 
-    DSLContext getDsl();
+    EntityManager getEntityManager();
 
-    T save(T entity) throws Exception;
+    void setEntityManager(EntityManager em);
 
-    boolean update(T entity) throws Exception;
+    T save(T entity);
 
-    Optional<T> findById(Long id) throws Exception;
+    boolean update(T entity);
 
-    List<T> findAll() throws Exception;
+    List<T> findAll();
 
-    boolean delete(Long id) throws Exception;
+    T findById(Long id);
 
-    void deleteAll() throws Exception;
+    void delete(T t);
 
-    long count() throws Exception;
+    void deleteAll();
 
-    boolean existsById(Long id) throws Exception;
+    int count();
+
+    boolean existingById(Long id);
 }

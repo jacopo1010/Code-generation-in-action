@@ -28,6 +28,7 @@ public class ModelGenerator extends FileGenerator {
 			for (MetaClass metaClass : metaClasses.values()) {
 				Map<String, Object> data = new HashMap<String, Object>();
 				data.put("metaClass", metaClass);
+				data.put("metaClasses", metaClasses);
 				data.put("packageName", packageModel);
 
 				File generatedDestination = new File(outputDirectory, metaClass.getName() + "Base.java");

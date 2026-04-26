@@ -32,9 +32,9 @@ public class FreeMarkerManager extends FileGenerator {
 		return this.sqlGenerator.generate(metaClasses, outputRoot);
 	}
 
-	public void generateRepository(String packageModel, String jooqPackage, String packageRepository,
+	public void generateRepository(String packageModel, String packageRepository,
 	        Map<String, MetaClass> metaClasses, String outputRoot) {
-		this.repositoryGenerator.generate(packageModel, jooqPackage, packageRepository, metaClasses, outputRoot);
+		this.repositoryGenerator.generate(packageModel, packageRepository, metaClasses, outputRoot);
 	}
 	
 	public void generateService(String packageModel, String packageRepository, String packageService, Map<String, MetaClass> metaClasses, String outputRoot) {

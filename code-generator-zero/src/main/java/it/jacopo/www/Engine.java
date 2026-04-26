@@ -7,7 +7,6 @@ import java.util.Properties;
 import it.jacopo.www.generator.FreeMarkerManager;
 import it.jacopo.www.generator.GeneratoreDiEntita;
 import it.jacopo.www.generator.GeneratoreDiMetaClass;
-import it.jacopo.www.generator.JooqGenerator;
 import it.jacopo.www.io.IO;
 import it.jacopo.www.loader.CaricatoreDiFile;
 import it.jacopo.www.loader.CaricatoreDiFileImpl;
@@ -55,12 +54,9 @@ public class Engine {
 
 	public Map<String, MetaClass> generate(String path){
 		File xmlFile = this.loader.carica(path);
-		Properties properties = this.loader.getApplicationProperties();
 		Map<String, MetaClass> metaClasses = this.metaCreator.generaMetaClass(xmlFile);
-		File sqlFile = this.createSchemaSql(metaClasses, path);
+		this.createSchemaSql(metaClasses, path);
 		this.createModel(metaClasses, path);
-		JooqGenerator jooq = new JooqGenerator(io);
-		jooq.generateJooqArtifacts(sqlFile, properties, path);
 		this.createRepository(metaClasses, path);
 		this.createService(metaClasses, path);
 		this.createController(metaClasses, path);
@@ -87,12 +83,11 @@ public class Engine {
 	    Properties properties = this.loader.getApplicationProperties();
 	    String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
 	    String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
-	    String jooqPackage = properties.getProperty(PropertiesCostanti.JOOQ_OUTPUT_PACKAGE);
 	    String packageRepository = properties.getProperty(PropertiesCostanti.REPOSITORY_OUTPUT_PACKAGE);
 	    if (packageRepository == null || packageRepository.trim().isEmpty()) {
-	        packageRepository = jooqPackage.replace(".jooq", ".repository");
+	        packageRepository = packageModel.replace(".model", ".repository");
 	    }
-	    this.marker.generateRepository(packageModel, jooqPackage,
+	    this.marker.generateRepository(packageModel,
 	            packageRepository, metaClasses,
 	            FileUtil.resolveJavaOutputPath(path, output));
 	}
@@ -104,8 +99,7 @@ public class Engine {
 		String packageRepository = properties.getProperty(PropertiesCostanti.REPOSITORY_OUTPUT_PACKAGE);
 		String packageService = properties.getProperty(PropertiesCostanti.SERVICE_OUTPUT_PACKAGE);
 		if (packageRepository == null || packageRepository.trim().isEmpty()) {
-			String jooqPackage = properties.getProperty(PropertiesCostanti.JOOQ_OUTPUT_PACKAGE);
-			packageRepository = jooqPackage.replace(".jooq", ".repository");
+			packageRepository = packageModel.replace(".model", ".repository");
 		}
 		if (packageService == null || packageService.trim().isEmpty()) {
 			packageService = packageRepository.replace(".repository", ".service");

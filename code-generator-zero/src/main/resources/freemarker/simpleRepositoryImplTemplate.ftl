@@ -2,94 +2,72 @@
 package ${packageRepository};
 
 import java.util.List;
-import java.util.Optional;
 
-import org.jooq.DSLContext;
-import org.jooq.conf.RenderQuotedNames;
-import org.jooq.conf.Settings;
-import org.jooq.Field;
-import org.jooq.Record;
-import org.jooq.Table;
-import org.jooq.UpdatableRecord;
-import org.jooq.impl.DSL;
+import javax.persistence.EntityManager;
 
-import com.zaxxer.hikari.HikariDataSource;
+public class SimpleRepositoryImpl<T> implements SimpleRepository<T> {
 
-public abstract class SimpleRepositoryImpl<T> implements SimpleRepository<T> {
+    private EntityManager em;
 
-    private final HikariDataSource dataSource;
+    private Class<T> domainClass;
 
-    protected SimpleRepositoryImpl(HikariDataSource dataSource) {
-        this.dataSource = dataSource;
+    public SimpleRepositoryImpl(Class<T> domainClass) {
+        this.domainClass = domainClass;
     }
 
     @Override
-    public DSLContext getDsl() {
-        return DSL.using(
-                this.dataSource,
-                org.jooq.SQLDialect.POSTGRES,
-                new Settings().withRenderQuotedNames(RenderQuotedNames.NEVER));
-    }
-
-    protected abstract Table<?> getTable();
-
-    protected abstract T toModel(Record record);
-
-    protected abstract void bindRecord(UpdatableRecord<?> record, T entity);
-
-    protected abstract void assignId(T entity, Long id);
-
-    protected abstract Field<Long> getIdField();
-
-    @Override
-    public List<T> findAll() {
-        return this.getDsl()
-                .selectFrom(this.getTable())
-                .fetch()
-                .map(this::toModel);
+    public EntityManager getEntityManager() {
+        return this.em;
     }
 
     @Override
-    public Optional<T> findById(Long id) {
-        return this.getDsl()
-                .selectFrom(this.getTable())
-                .where(this.getIdField().eq(id))
-                .fetchOptional()
-                .map(this::toModel);
-    }
-
-    @Override
-    public boolean existsById(Long id) {
-        return this.getDsl().fetchExists(
-                this.getDsl().selectOne()
-                        .from(this.getTable())
-                        .where(this.getIdField().eq(id)));
+    public void setEntityManager(EntityManager em) {
+        this.em = em;
     }
 
     @Override
     public T save(T entity) {
-        UpdatableRecord<?> record = (UpdatableRecord<?>) this.getDsl().newRecord(this.getTable());
-        this.bindRecord(record, entity);
-        record.store();
-        this.assignId(entity, record.get(this.getIdField()));
-        return entity;
+        T persistEntity = entity;
+        this.em.persist(persistEntity);
+        return persistEntity;
     }
 
     @Override
-    public boolean delete(Long id) {
-        return this.getDsl()
-                .deleteFrom(this.getTable())
-                .where(this.getIdField().eq(id))
-                .execute() > 0;
+    public boolean update(T entity) {
+        if (entity == null) {
+            return false;
+        }
+        this.em.merge(entity);
+        return true;
+    }
+
+    @Override
+    public List<T> findAll() {
+        return this.em.createQuery("select o from " + this.domainClass.getName() + " o", this.domainClass).getResultList();
+    }
+
+    @Override
+    public T findById(Long id) {
+        return this.em.find(this.domainClass, id);
+    }
+
+    @Override
+    public void delete(T t) {
+        this.em.remove(t);
     }
 
     @Override
     public void deleteAll() {
-        this.getDsl().deleteFrom(this.getTable()).execute();
+        this.em.createQuery("DELETE FROM" + this.domainClass.getName()).executeUpdate();
     }
 
     @Override
-    public long count() {
-        return this.getDsl().fetchCount(this.getTable());
+    public int count() {
+        return (int)this.em.createQuery("SELECT COUNT(id) FROM" + this.domainClass.getName()).getSingleResult();
+    }
+
+    @Override
+    public boolean existingById(Long id) {
+        return this.findById(id) != null;
     }
 }

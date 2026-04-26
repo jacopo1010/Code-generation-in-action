@@ -44,10 +44,17 @@ public class FreeMarkerManagerTest extends TestCase {
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.model;"));
+			assertTrue(generatedContent.contains("@MappedSuperclass"));
 			assertTrue(generatedContent.contains("public class ClienteBase"));
 			assertTrue(generatedContent.contains("public ClienteBase()"));
+			assertTrue(generatedContent.contains("@Id"));
+			assertTrue(generatedContent.contains("@GeneratedValue(strategy = GenerationType.IDENTITY)"));
+			assertTrue(generatedContent.contains("@Column(name = \"id\")"));
 			assertTrue(generatedContent.contains("private Long id;"));
 			assertTrue(generatedContent.contains("public Long getId()"));
+			assertTrue(wrapperContent.contains("import jakarta.persistence.Entity;"));
+			assertTrue(wrapperContent.contains("@Entity"));
+			assertTrue(wrapperContent.contains("@Table(name = \"cliente\")"));
 			assertTrue(wrapperContent.contains("public class Cliente extends ClienteBase"));
 			assertTrue(wrapperContent.contains("public Cliente()"));
 			assertTrue(wrapperContent.contains("super();"));
@@ -118,7 +125,6 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateRepository(
 					"it.test.model",
-					"it.test.jooq",
 					"it.test.repository",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
@@ -136,17 +142,130 @@ public class FreeMarkerManagerTest extends TestCase {
 					StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.repository;"));
 			assertTrue(generatedContent.contains("import it.test.model.Cliente;"));
-			assertTrue(generatedContent.contains("import static it.test.jooq.tables.Cliente.CLIENTE;"));
 			assertTrue(generatedContent.contains("public class ClienteRepository extends SimpleRepositoryImpl<Cliente>"));
-			assertTrue(generatedContent.contains("public ClienteRepository(HikariDataSource dataSource)"));
-			assertTrue(generatedContent.contains("protected Table<?> getTable()"));
-			assertTrue(generatedContent.contains("protected void bindRecord(UpdatableRecord<?> record, Cliente entity)"));
-			assertTrue(generatedContent.contains("protected Field<Long> getIdField()"));
+			assertTrue(generatedContent.contains("public ClienteRepository()"));
+			assertTrue(generatedContent.contains("super(Cliente.class);"));
+			assertFalse(generatedContent.contains("public boolean update(Cliente entity)"));
 			assertFalse(generatedContent.contains("deleteById("));
 			assertTrue(simpleRepositoryContent.contains("package it.test.repository;"));
+			assertTrue(simpleRepositoryContent.contains("import javax.persistence.EntityManager;"));
 			assertTrue(simpleRepositoryContent.contains("public interface SimpleRepository<T>"));
+			assertTrue(simpleRepositoryContent.contains("boolean update(T entity);"));
+			assertTrue(simpleRepositoryContent.contains("T findById(Long id);"));
 			assertTrue(simpleRepositoryImplContent.contains("package it.test.repository;"));
-			assertTrue(simpleRepositoryImplContent.contains("public abstract class SimpleRepositoryImpl<T> implements SimpleRepository<T>"));
+			assertTrue(simpleRepositoryImplContent.contains("public class SimpleRepositoryImpl<T> implements SimpleRepository<T>"));
+			assertTrue(simpleRepositoryImplContent.contains("import javax.persistence.EntityManager;"));
+			assertFalse(simpleRepositoryImplContent.contains("JpaUtil"));
+			assertTrue(simpleRepositoryImplContent.contains("return this.em;"));
+			assertTrue(simpleRepositoryImplContent.contains("public boolean update(T entity)"));
+			assertTrue(simpleRepositoryImplContent.contains("this.em.merge(entity);"));
+			assertTrue(simpleRepositoryImplContent.contains("return this.findById(id) != null;"));
+		} finally {
+			this.deleteRecursively(tempDirectory);
+		}
+	}
+
+	public void testGenerateModelAggiungeAnnotazioniJpaPerRelazioni() throws Exception {
+		File tempDirectory = Files.createTempDirectory("model-jpa-relations-test").toFile();
+		try {
+			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
+
+			MetaClass userMetaClass = new MetaClass();
+			userMetaClass.setName("User");
+			userMetaClass.setTable("users");
+
+			MetaField userIdField = new MetaField();
+			userIdField.setName("id");
+			userIdField.setJavaType("Long");
+			userMetaClass.addField(userIdField);
+
+			MetaField projectsField = new MetaField();
+			projectsField.setName("owner");
+			projectsField.setJavaType("Project");
+			projectsField.setType("Project");
+			projectsField.setRelation(true);
+			projectsField.setCollection(true);
+			projectsField.setRelationType("ONE_TO_MANY");
+			userMetaClass.addField(projectsField);
+
+			MetaClass projectMetaClass = new MetaClass();
+			projectMetaClass.setName("Project");
+			projectMetaClass.setTable("projects");
+
+			MetaField projectIdField = new MetaField();
+			projectIdField.setName("id");
+			projectIdField.setJavaType("Long");
+			projectMetaClass.addField(projectIdField);
+
+			MetaField ownerField = new MetaField();
+			ownerField.setName("owner");
+			ownerField.setJavaType("User");
+			ownerField.setType("User");
+			ownerField.setRelation(true);
+			ownerField.setRelationType("MANY_TO_ONE");
+			ownerField.setForeignKeyColumn("user_id");
+			ownerField.setRequired(true);
+			ownerField.setCascadeOnDelete("CASCADE");
+			ownerField.addTag("cascade", "MERGE,PERSIST");
+			projectMetaClass.addField(ownerField);
+
+			MetaField membersField = new MetaField();
+			membersField.setName("members");
+			membersField.setJavaType("Tag");
+			membersField.setType("Tag");
+			membersField.setRelation(true);
+			membersField.setCollection(true);
+			membersField.setRelationType("MANY_TO_MANY");
+			membersField.setJoinTableRequired(true);
+			membersField.addTag("cascade", "ALL");
+			projectMetaClass.addField(membersField);
+
+			MetaClass tagMetaClass = new MetaClass();
+			tagMetaClass.setName("Tag");
+			tagMetaClass.setTable("tags");
+
+			MetaField tagIdField = new MetaField();
+			tagIdField.setName("id");
+			tagIdField.setJavaType("Long");
+			tagMetaClass.addField(tagIdField);
+
+			MetaField inverseMembersField = new MetaField();
+			inverseMembersField.setName("members");
+			inverseMembersField.setJavaType("Project");
+			inverseMembersField.setType("Project");
+			inverseMembersField.setRelation(true);
+			inverseMembersField.setCollection(true);
+			inverseMembersField.setRelationType("MANY_TO_MANY");
+			inverseMembersField.setJoinTableRequired(true);
+			inverseMembersField.addTag("mappedBy", "members");
+			tagMetaClass.addField(inverseMembersField);
+
+			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
+			metaClasses.put(userMetaClass.getName(), userMetaClass);
+			metaClasses.put(projectMetaClass.getName(), projectMetaClass);
+			metaClasses.put(tagMetaClass.getName(), tagMetaClass);
+
+			manager.generateModel("it.test.model", metaClasses, tempDirectory.getAbsolutePath());
+
+			File projectBaseFile = new File(tempDirectory, "it\\test\\model\\ProjectBase.java");
+			File userBaseFile = new File(tempDirectory, "it\\test\\model\\UserBase.java");
+			File tagBaseFile = new File(tempDirectory, "it\\test\\model\\TagBase.java");
+
+			String projectContent = new String(Files.readAllBytes(projectBaseFile.toPath()), StandardCharsets.UTF_8);
+			String userContent = new String(Files.readAllBytes(userBaseFile.toPath()), StandardCharsets.UTF_8);
+			String tagContent = new String(Files.readAllBytes(tagBaseFile.toPath()), StandardCharsets.UTF_8);
+
+			assertTrue(projectContent.contains("@ManyToOne(optional = false, cascade = { CascadeType.MERGE, CascadeType.PERSIST })"));
+			assertTrue(projectContent.contains("@Fetch(FetchMode.SELECT)"));
+			assertTrue(projectContent.contains("@JoinColumn(name = \"user_id\", nullable = false)"));
+			assertTrue(projectContent.contains("@OnDelete(action = OnDeleteAction.CASCADE)"));
+			assertTrue(projectContent.contains("@ManyToMany(cascade = { CascadeType.ALL })"));
+			assertTrue(projectContent.contains("name = \"projects_tags\""));
+			assertTrue(projectContent.contains("joinColumns = @JoinColumn(name = \"projects_id\")"));
+			assertTrue(projectContent.contains("inverseJoinColumns = @JoinColumn(name = \"tags_id\")"));
+			assertTrue(userContent.contains("@OneToMany(mappedBy = \"owner\")"));
+			assertTrue(userContent.contains("@Fetch(FetchMode.SELECT)"));
+			assertTrue(tagContent.contains("@ManyToMany(mappedBy = \"members\")"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -187,7 +306,6 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateRepository(
 					"it.test.model",
-					"it.test.jooq",
 					"it.test.repository",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
@@ -196,8 +314,8 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("public List<Corso> findByStudenteId(Long id)"));
-			assertTrue(generatedContent.contains(".where(CORSO.STUDENTE_ID.eq(id))"));
-			assertTrue(generatedContent.contains(".map(this::toModel);"));
+			assertTrue(generatedContent.contains("WHERE c.studente.id = :id"));
+			assertTrue(generatedContent.contains("query.setParameter(\"id\", id);"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -221,7 +339,6 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateRepository(
 					"it.test.model",
-					"it.test.jooq",
 					"it.test.repository",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
@@ -238,7 +355,6 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateRepository(
 					"it.test.model",
-					"it.test.jooq",
 					"it.test.repository",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
@@ -307,7 +423,6 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateRepository(
 					"it.test.model",
-					"it.test.jooq",
 					"it.test.repository",
 					metaClasses,
 					tempDirectory.getAbsolutePath());
@@ -315,24 +430,13 @@ public class FreeMarkerManagerTest extends TestCase {
 			File generatedFile = new File(tempDirectory, "it\\test\\repository\\TaskRepository.java");
 			assertTrue("RepositoryGenerated non generato nel path atteso", generatedFile.isFile());
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(generatedContent.contains("import java.time.LocalDateTime;"));
-			assertTrue(generatedContent.contains("import java.sql.Timestamp;"));
-			assertTrue(generatedContent.contains("private Timestamp toTimestamp(LocalDateTime value)"));
-			assertTrue(generatedContent.contains("private LocalDateTime toLocalDateTime(Timestamp value)"));
-			assertTrue(generatedContent.contains("entity.setCreationTimeStamp(this.toTimestamp(record.get(TASKS.CREATION_TIME_STAMP, LocalDateTime.class)));"));
-			assertTrue(generatedContent.contains("entity.setLastUpdateTimeStamp(this.toTimestamp(record.get(TASKS.LAST_UPDATE_TIME_STAMP, LocalDateTime.class)));"));
-			assertTrue(generatedContent.contains("import it.test.model.Project;"));
-			assertTrue(generatedContent.contains("import static it.test.jooq.tables.Tasks.TASKS;"));
-			assertTrue(generatedContent.contains("record.set(TASKS.CREATION_TIME_STAMP, this.toLocalDateTime(entity.getCreationTimeStamp()));"));
-			assertTrue(generatedContent.contains("record.set(TASKS.LAST_UPDATE_TIME_STAMP, this.toLocalDateTime(entity.getLastUpdateTimeStamp()));"));
-			assertTrue(generatedContent.contains("record.set(TASKS.PROJECT_ID, entity.getContain().getId());"));
-			assertTrue(generatedContent.contains(".set(TASKS.CREATION_TIME_STAMP, this.toLocalDateTime(entity.getCreationTimeStamp()))"));
-			assertTrue(generatedContent.contains(".set(TASKS.LAST_UPDATE_TIME_STAMP, this.toLocalDateTime(entity.getLastUpdateTimeStamp()))"));
-			assertTrue(generatedContent.contains(".set(TASKS.PROJECT_ID,"));
-			assertTrue(generatedContent.contains("entity.getContain() != null ? entity.getContain().getId() : null"));
-			assertTrue(generatedContent.contains("Project contain = new Project();"));
-			assertTrue(generatedContent.contains("contain.setId(record.get(TASKS.PROJECT_ID, Long.class));"));
-			assertTrue(generatedContent.contains("entity.setContain(contain);"));
+			assertTrue(generatedContent.contains("import javax.persistence.TypedQuery;"));
+			assertTrue(generatedContent.contains("import java.util.Collections;"));
+			assertTrue(generatedContent.contains("public List<Task> findByKeyword(String keyword)"));
+			assertTrue(generatedContent.contains("LOWER(t.name) LIKE :keyword"));
+			assertTrue(generatedContent.contains("public List<Task> findByContainId(Long id)"));
+			assertTrue(generatedContent.contains("WHERE t.contain.id = :id"));
+			assertFalse(generatedContent.contains("public boolean update(Task entity)"));
 			assertTrue(generatedContent.contains("public class TaskRepository extends SimpleRepositoryImpl<Task>"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
@@ -388,7 +492,8 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id obbligatorio per l'aggiornamento di Cliente\");"));
 			assertTrue(generatedContent.contains("public List<Cliente> findByKeyword(String keyword)"));
 			assertTrue(generatedContent.contains("return this.repository.findByKeyword(keyword);"));
-			assertTrue(generatedContent.contains("return this.repository.delete(id);"));
+			assertTrue(generatedContent.contains("Cliente entity = this.repository.findById(id);"));
+			assertTrue(generatedContent.contains("this.repository.delete(entity);"));
 			assertTrue(wrapperContent.contains("public class ClienteService extends ClienteServiceBase"));
 			assertTrue(wrapperContent.contains("public ClienteService(ClienteRepository repository)"));
 		} finally {
@@ -446,7 +551,7 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("Studente studente = entity.getStudente();"));
 			assertTrue(generatedContent.contains("if (studente != null)"));
 			assertTrue(generatedContent.contains("if (studente.getId() == null)"));
-			assertTrue(generatedContent.contains("if (!this.studenteRepository.existsById(studente.getId()))"));
+			assertTrue(generatedContent.contains("if (!this.studenteRepository.existingById(studente.getId()))"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Id di Studente associato obbligatorio\");"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Studente associato non esistente: \""));
 			assertTrue(generatedContent.contains("+ studente.getId());"));
@@ -562,7 +667,7 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("Project contain = entity.getContain();"));
 			assertTrue(generatedContent.contains("if (contain == null || contain.getId() == null)"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Project associato obbligatorio per Task\");"));
-			assertTrue(generatedContent.contains("if (!this.projectRepository.existsById(contain.getId()))"));
+			assertTrue(generatedContent.contains("if (!this.projectRepository.existingById(contain.getId()))"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Project associato non esistente: \""));
 			assertTrue(generatedContent.contains("+ contain.getId());"));
 			assertTrue(generatedContent.contains("this.validateEntityForWrite(entity);"));
@@ -616,25 +721,25 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("protected final TaskService taskService;"));
 			assertTrue(generatedContent.contains("protected TaskControllerBase(TaskService taskService)"));
 			assertTrue(generatedContent.contains("this.taskService = taskService;"));
-			assertTrue(generatedContent.contains("public Response getAllTasks() throws SQLException"));
+			assertTrue(generatedContent.contains("public Response getAllTasks()"));
 			assertTrue(generatedContent.contains("return Response.ok(tasks).build();"));
-			assertTrue(generatedContent.contains("public Response countTasks() throws SQLException"));
-			assertTrue(generatedContent.contains("public Response existsTask(@PathParam(\"id\") Long id) throws SQLException"));
+			assertTrue(generatedContent.contains("public Response countTasks()"));
+			assertTrue(generatedContent.contains("public Response existsTask(@PathParam(\"id\") Long id)"));
 			assertTrue(generatedContent.contains("return Response.ok(this.taskService.existsById(id)).build();"));
-			assertTrue(generatedContent.contains("public Response findByKeyword(@QueryParam(\"keyword\") String keyword) throws SQLException"));
+			assertTrue(generatedContent.contains("public Response findByKeyword(@QueryParam(\"keyword\") String keyword)"));
 			assertTrue(generatedContent.contains("return Response.ok(this.taskService.findByKeyword(keyword)).build();"));
-			assertTrue(generatedContent.contains("public Response getTask(@PathParam(\"id\") Long id) throws SQLException"));
+			assertTrue(generatedContent.contains("public Response getTask(@PathParam(\"id\") Long id)"));
 			assertTrue(generatedContent.contains("Optional<Task> task = this.taskService.findById(id);"));
 			assertTrue(generatedContent.contains("if (!task.isPresent())"));
 			assertTrue(generatedContent.contains("return Response.ok(task.get()).build();"));
-			assertTrue(generatedContent.contains("public Response createTask(Task task) throws SQLException"));
+			assertTrue(generatedContent.contains("public Response createTask(Task task)"));
 			assertTrue(generatedContent.contains("Task created = this.taskService.save(task);"));
 			assertTrue(generatedContent.contains("return Response.created(URI.create(\"/api/tasks/\" + created.getId())).entity(created).build();"));
-			assertTrue(generatedContent.contains("public Response updateTask(@PathParam(\"id\") Long id, Task task) throws SQLException"));
+			assertTrue(generatedContent.contains("public Response updateTask(@PathParam(\"id\") Long id, Task task)"));
 			assertTrue(generatedContent.contains("task.setId(id);"));
 			assertTrue(generatedContent.contains("boolean updated = this.taskService.update(task);"));
-			assertTrue(generatedContent.contains("public Response deleteAll() throws SQLException"));
-			assertTrue(generatedContent.contains("public Response deleteById(@PathParam(\"id\") Long id) throws SQLException"));
+			assertTrue(generatedContent.contains("public Response deleteAll()"));
+			assertTrue(generatedContent.contains("public Response deleteById(@PathParam(\"id\") Long id)"));
 			assertTrue(generatedContent.contains("boolean deleted = this.taskService.delete(id);"));
 			assertTrue(wrapperContent.contains("public class TaskController extends TaskControllerBase"));
 			assertTrue(wrapperContent.contains("import it.test.service.TaskService;"));
@@ -688,7 +793,7 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("@Path(\"/by-contain/{containId}\")"));
-			assertTrue(generatedContent.contains("public Response findByContainId(@PathParam(\"containId\") Long containId) throws SQLException"));
+			assertTrue(generatedContent.contains("public Response findByContainId(@PathParam(\"containId\") Long containId)"));
 			assertTrue(generatedContent.contains("return Response.ok(this.taskService.findByContainId(containId)).build();"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
