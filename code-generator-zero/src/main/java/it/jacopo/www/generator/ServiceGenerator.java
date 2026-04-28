@@ -35,6 +35,7 @@ public class ServiceGenerator extends FileGenerator {
 				data.put("packageRepository", packageRepository);
 				data.put("packageService", packageService);
 				data.put("metaClasses", metaClasses);
+				data.put("jakartaEe", JakartaEeTemplateContextFactory.create());
 
 				File generatedDestination = new File(outputDirectory, metaClass.getName() + "ServiceBase.java");
 				this.renderTemplateToFile(SERVICE_TEMPLATE_NAME, data, generatedDestination);

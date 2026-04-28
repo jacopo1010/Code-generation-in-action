@@ -1,15 +1,22 @@
 <#ftl output_format="plainText">
+<#assign repositoryConfig = jakartaEe.repository>
 package ${packageRepository};
 
 import java.util.List;
 
 import jakarta.persistence.EntityManager;
+<#list repositoryConfig.entityManagerFieldImports as importLine>
+import ${importLine};
+</#list>
 
 public class SimpleRepositoryImpl<T> implements SimpleRepository<T> {
 
+<#list repositoryConfig.entityManagerFieldAnnotations as annotation>
+    ${annotation}
+</#list>
     private EntityManager em;
 
-    private Class<T> domainClass;
+    private final Class<T> domainClass;
 
     public SimpleRepositoryImpl(Class<T> domainClass) {
         this.domainClass = domainClass;
@@ -43,7 +50,7 @@ public class SimpleRepositoryImpl<T> implements SimpleRepository<T> {
 
     @Override
     public List<T> findAll() {
-        return this.em.createQuery("select o from " + this.domainClass.getName() + " o", this.domainClass).getResultList();
+        return this.em.createQuery("select o from " + this.domainClass.getSimpleName() + " o", this.domainClass).getResultList();
     }
 
     @Override
@@ -58,12 +65,13 @@ public class SimpleRepositoryImpl<T> implements SimpleRepository<T> {
 
     @Override
     public void deleteAll() {
-        this.em.createQuery("DELETE FROM" + this.domainClass.getName()).executeUpdate();
+        this.em.createQuery("DELETE FROM " + this.domainClass.getSimpleName()).executeUpdate();
     }
 
     @Override
     public int count() {
-        return (int)this.em.createQuery("SELECT COUNT(id) FROM" + this.domainClass.getName()).getSingleResult();
+        return ((Long) this.em.createQuery("SELECT COUNT(o) FROM " + this.domainClass.getSimpleName() + " o")
+                .getSingleResult()).intValue();
     }
 
     @Override

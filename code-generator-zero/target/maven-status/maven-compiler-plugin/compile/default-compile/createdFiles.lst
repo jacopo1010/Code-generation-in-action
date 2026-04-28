@@ -1,5 +1,6 @@
 it\jacopo\www\generator\ModelGenerator.class
 it\jacopo\www\generator\ServiceGenerator.class
 it\jacopo\www\generator\ControllerGenerator.class
+it\jacopo\www\generator\JakartaEeTemplateContextFactory.class
 it\jacopo\www\generator\RepositoryGenerator.class
 it\jacopo\www\generator\SqlGenerator.class

@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: it.jacopo.www.generator.FreeMarkerManagerTest
 -------------------------------------------------------------------------------
-Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.757 s -- in it.jacopo.www.generator.FreeMarkerManagerTest
+Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.732 s -- in it.jacopo.www.generator.FreeMarkerManagerTest

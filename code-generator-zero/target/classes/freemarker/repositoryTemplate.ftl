@@ -18,16 +18,23 @@
 <#assign persistentFields = allFields?filter(f -> !f.collection && !f.relation)>
 <#assign stringFields = persistentFields?filter(f -> f.javaType == "String")>
 <#assign manyToOneFields = allFields?filter(f -> f.relation && f.relationType == "MANY_TO_ONE")>
+<#assign repositoryConfig = jakartaEe.repository>
 
 package ${packageRepository};
 
 import java.util.Collections;
 import java.util.List;
 
+<#list repositoryConfig.imports as importLine>
+import ${importLine};
+</#list>
 import jakarta.persistence.TypedQuery;
 
 import ${packageModel}.${entityName};
 
+<#list repositoryConfig.classAnnotations as annotation>
+${annotation}
+</#list>
 public class ${entityName}Repository extends SimpleRepositoryImpl<${entityName}> {
 
     public ${entityName}Repository() {

@@ -61,6 +61,7 @@
     </#if>
 </#list>
 <#assign hasTechnicalTimestampFields = creationTimestampField?has_content && lastUpdateTimestampField?has_content>
+<#assign serviceConfig = jakartaEe.service>
 
 package ${packageService};
 
@@ -69,6 +70,9 @@ import java.util.Optional;
 <#if hasTechnicalTimestampFields>
 import java.sql.Timestamp;
 </#if>
+<#list serviceConfig.baseImports as importLine>
+import ${importLine};
+</#list>
 
 import ${packageModel}.${entityName};
 <#list relationTypesToImport as relationType>
@@ -79,19 +83,21 @@ import ${packageRepository}.${entityName}Repository;
 import ${packageRepository}.${relationType}Repository;
 </#list>
 
+<#list serviceConfig.baseClassAnnotations as annotation>
+${annotation}
+</#list>
 public class ${entityName}ServiceBase {
 
-    protected final ${entityName}Repository repository;
-<#list manyToOneFields as relationField>
-    protected final ${relationField.javaType}Repository ${relationField.javaType?uncap_first}Repository;
+<#list serviceConfig.fieldAnnotations as annotation>
+    ${annotation}
 </#list>
-
-    protected ${entityName}ServiceBase(${entityName}Repository repository<#list manyToOneFields as relationField>, ${relationField.javaType}Repository ${relationField.javaType?uncap_first}Repository</#list>) {
-        this.repository = repository;
+    protected ${entityName}Repository repository;
 <#list manyToOneFields as relationField>
-        this.${relationField.javaType?uncap_first}Repository = ${relationField.javaType?uncap_first}Repository;
+<#list serviceConfig.fieldAnnotations as annotation>
+    ${annotation}
 </#list>
-    }
+    protected ${relationField.javaType}Repository ${relationField.javaType?uncap_first}Repository;
+</#list>
 
     // -------------------------------------------------------------------------
     // READ

@@ -136,6 +136,8 @@ public class FreeMarkerManagerTest extends TestCase {
 					StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.repository;"));
 			assertTrue(generatedContent.contains("import it.test.model.Cliente;"));
+			assertTrue(generatedContent.contains("import jakarta.ejb.Stateless;"));
+			assertTrue(generatedContent.contains("@Stateless"));
 			assertTrue(generatedContent.contains("public class ClienteRepository extends SimpleRepositoryImpl<Cliente>"));
 			assertTrue(generatedContent.contains("public ClienteRepository()"));
 			assertTrue(generatedContent.contains("super(Cliente.class);"));
@@ -149,6 +151,8 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(simpleRepositoryImplContent.contains("package it.test.repository;"));
 			assertTrue(simpleRepositoryImplContent.contains("public class SimpleRepositoryImpl<T> implements SimpleRepository<T>"));
 			assertTrue(simpleRepositoryImplContent.contains("import jakarta.persistence.EntityManager;"));
+			assertTrue(simpleRepositoryImplContent.contains("import jakarta.persistence.PersistenceContext;"));
+			assertTrue(simpleRepositoryImplContent.contains("@PersistenceContext"));
 			assertFalse(simpleRepositoryImplContent.contains("JpaUtil"));
 			assertTrue(simpleRepositoryImplContent.contains("return this.em;"));
 			assertTrue(simpleRepositoryImplContent.contains("public boolean update(T entity)"));
@@ -472,12 +476,14 @@ public class FreeMarkerManagerTest extends TestCase {
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.service;"));
+			assertTrue(generatedContent.contains("import jakarta.ejb.Stateless;"));
+			assertTrue(generatedContent.contains("import jakarta.inject.Inject;"));
 			assertTrue(generatedContent.contains("import it.test.model.Cliente;"));
 			assertTrue(generatedContent.contains("import it.test.repository.ClienteRepository;"));
+			assertTrue(generatedContent.contains("@Stateless"));
 			assertTrue(generatedContent.contains("public class ClienteServiceBase"));
-			assertTrue(generatedContent.contains("protected final ClienteRepository repository;"));
-			assertTrue(generatedContent.contains("protected ClienteServiceBase(ClienteRepository repository)"));
-			assertTrue(generatedContent.contains("this.repository = repository;"));
+			assertTrue(generatedContent.contains("@Inject"));
+			assertTrue(generatedContent.contains("protected ClienteRepository repository;"));
 			assertTrue(generatedContent.contains("private void validateEntityForWrite(Cliente entity)"));
 			assertTrue(generatedContent.contains("if (entity == null)"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Cliente obbligatorio\");"));
@@ -488,8 +494,10 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("return this.repository.findByKeyword(keyword);"));
 			assertTrue(generatedContent.contains("Cliente entity = this.repository.findById(id);"));
 			assertTrue(generatedContent.contains("this.repository.delete(entity);"));
+			assertTrue(wrapperContent.contains("import jakarta.ejb.Stateless;"));
+			assertTrue(wrapperContent.contains("@Stateless"));
 			assertTrue(wrapperContent.contains("public class ClienteService extends ClienteServiceBase"));
-			assertTrue(wrapperContent.contains("public ClienteService(ClienteRepository repository)"));
+			assertFalse(wrapperContent.contains("public ClienteService("));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -540,8 +548,8 @@ public class FreeMarkerManagerTest extends TestCase {
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("import it.test.model.Studente;"));
 			assertTrue(generatedContent.contains("import it.test.repository.StudenteRepository;"));
-			assertTrue(generatedContent.contains("protected final StudenteRepository studenteRepository;"));
-			assertTrue(generatedContent.contains("StudenteRepository studenteRepository"));
+			assertTrue(generatedContent.contains("@Inject"));
+			assertTrue(generatedContent.contains("protected StudenteRepository studenteRepository;"));
 			assertTrue(generatedContent.contains("Studente studente = entity.getStudente();"));
 			assertTrue(generatedContent.contains("if (studente != null)"));
 			assertTrue(generatedContent.contains("if (studente.getId() == null)"));
@@ -656,8 +664,8 @@ public class FreeMarkerManagerTest extends TestCase {
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("import it.test.model.Project;"));
 			assertTrue(generatedContent.contains("import it.test.repository.ProjectRepository;"));
-			assertTrue(generatedContent.contains("protected final ProjectRepository projectRepository;"));
-			assertTrue(generatedContent.contains("ProjectRepository projectRepository"));
+			assertTrue(generatedContent.contains("@Inject"));
+			assertTrue(generatedContent.contains("protected ProjectRepository projectRepository;"));
 			assertTrue(generatedContent.contains("Project contain = entity.getContain();"));
 			assertTrue(generatedContent.contains("if (contain == null || contain.getId() == null)"));
 			assertTrue(generatedContent.contains("throw new IllegalArgumentException(\"Project associato obbligatorio per Task\");"));
@@ -789,17 +797,22 @@ public class FreeMarkerManagerTest extends TestCase {
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			String wrapperContent = new String(Files.readAllBytes(wrapperFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("package it.test.controller;"));
+			assertTrue(generatedContent.contains("import jakarta.inject.Inject;"));
 			assertTrue(generatedContent.contains("import jakarta.ws.rs.Path;"));
+			assertTrue(generatedContent.contains("import jakarta.ws.rs.Produces;"));
+			assertTrue(generatedContent.contains("import jakarta.ws.rs.Consumes;"));
+			assertTrue(generatedContent.contains("import jakarta.ws.rs.core.MediaType;"));
 			assertTrue(generatedContent.contains("import jakarta.ws.rs.core.Response;"));
 			assertTrue(generatedContent.contains("import java.util.Optional;"));
 			assertTrue(generatedContent.contains("import it.test.model.Task;"));
 			assertTrue(generatedContent.contains("import it.test.dto.TaskDto;"));
 			assertTrue(generatedContent.contains("import it.test.service.TaskService;"));
-			assertTrue(generatedContent.contains("@Path(\"api/tasks\")"));
+			assertTrue(generatedContent.contains("@Path(\"/tasks\")"));
+			assertTrue(generatedContent.contains("@Produces(MediaType.APPLICATION_JSON)"));
+			assertTrue(generatedContent.contains("@Consumes(MediaType.APPLICATION_JSON)"));
 			assertTrue(generatedContent.contains("public class TaskControllerBase"));
-			assertTrue(generatedContent.contains("protected final TaskService taskService;"));
-			assertTrue(generatedContent.contains("protected TaskControllerBase(TaskService taskService)"));
-			assertTrue(generatedContent.contains("this.taskService = taskService;"));
+			assertTrue(generatedContent.contains("@Inject"));
+			assertTrue(generatedContent.contains("protected TaskService taskService;"));
 			assertTrue(generatedContent.contains("public Response getAllTasks()"));
 			assertTrue(generatedContent.contains("return Response.ok(this.toDtoList(tasks)).build();"));
 			assertTrue(generatedContent.contains("public Response countTasks()"));
@@ -824,9 +837,10 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("boolean deleted = this.taskService.delete(id);"));
 			assertTrue(generatedContent.contains("protected TaskDto toDto(Task entity)"));
 			assertTrue(generatedContent.contains("protected Task toEntity(TaskDto dto)"));
+			assertTrue(wrapperContent.contains("import jakarta.enterprise.context.RequestScoped;"));
+			assertTrue(wrapperContent.contains("@RequestScoped"));
 			assertTrue(wrapperContent.contains("public class TaskController extends TaskControllerBase"));
-			assertTrue(wrapperContent.contains("import it.test.service.TaskService;"));
-			assertTrue(wrapperContent.contains("public TaskController(TaskService taskService)"));
+			assertFalse(wrapperContent.contains("public TaskController("));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}

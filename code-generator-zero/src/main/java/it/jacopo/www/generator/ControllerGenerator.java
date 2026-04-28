@@ -37,6 +37,7 @@ public class ControllerGenerator extends FileGenerator {
 				data.put("packageService", packageService);
 				data.put("packageController", packageController);
 				data.put("metaClasses", metaClasses);
+				data.put("jakartaEe", JakartaEeTemplateContextFactory.create());
 
 				File generatedDestination = new File(outputDirectory, metaClass.getName() + "ControllerBase.java");
 				this.renderTemplateToFile(CONTROLLER_TEMPLATE_NAME, data, generatedDestination);

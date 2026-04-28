@@ -1,12 +1,14 @@
 <#ftl output_format="plainText">
 <#assign entityName = metaClass.name>
+<#assign controllerConfig = jakartaEe.controller>
 package ${packageController};
 
-import ${packageService}.${entityName}Service;
+<#list controllerConfig.wrapperImports as importLine>
+import ${importLine};
+</#list>
 
+<#list controllerConfig.wrapperAnnotations as annotation>
+${annotation}
+</#list>
 public class ${entityName}Controller extends ${entityName}ControllerBase {
-
-    public ${entityName}Controller(${entityName}Service ${entityName?uncap_first}Service) {
-        super(${entityName?uncap_first}Service);
-    }
 }

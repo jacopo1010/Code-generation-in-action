@@ -36,6 +36,7 @@ public class RepositoryGenerator extends FileGenerator {
 				data.put("packageModel", packageModel);
 				data.put("packageRepository", packageRepository);
 				data.put("metaClasses", metaClasses);
+				data.put("jakartaEe", JakartaEeTemplateContextFactory.create());
 
 				File repositoryDestination = new File(outputDirectory, metaClass.getName() + "Repository.java");
 				this.renderTemplateToFileIfAbsent(REPOSITORY_TEMPLATE_NAME, data, repositoryDestination);
@@ -50,6 +51,7 @@ public class RepositoryGenerator extends FileGenerator {
 		File outputDirectory = this.prepareOutputDirectory(outputRoot, packageRepository);
 		Map<String, Object> data = new HashMap<String, Object>();
 		data.put("packageRepository", packageRepository);
+		data.put("jakartaEe", JakartaEeTemplateContextFactory.create());
 
 		File interfaceDestination = new File(outputDirectory, "SimpleRepository.java");
 		this.renderTemplateToFileIfAbsent(SIMPLE_REPOSITORY_TEMPLATE_NAME, data, interfaceDestination);

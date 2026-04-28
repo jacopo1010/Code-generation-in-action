@@ -46,6 +46,7 @@
 <#assign stringFields = persistentFields?filter(field -> field.javaType == "String")>
 <#assign manyToOneFields = allFields?filter(field -> field.relation && field.relationType == "MANY_TO_ONE" && field.foreignKeyColumn?? && field.foreignKeyColumn?has_content)>
 <#assign resourceName = toSqlName(entityName) + "s">
+<#assign controllerConfig = jakartaEe.controller>
 
 package ${packageController};
 
@@ -53,6 +54,9 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
+<#list controllerConfig.baseImports as importLine>
+import ${importLine};
+</#list>
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -68,16 +72,18 @@ import ${packageModel}.${entityName};
 import ${packageDto}.${entityName}Dto;
 import ${packageService}.${entityName}Service;
 
+<#list controllerConfig.baseClassAnnotations as annotation>
+${annotation}
+</#list>
 @Path("/${resourceName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ${entityName}ControllerBase {
 
-    protected final ${entityName}Service ${entityName?uncap_first}Service;
-
-    protected ${entityName}ControllerBase(${entityName}Service ${entityName?uncap_first}Service) {
-        this.${entityName?uncap_first}Service = ${entityName?uncap_first}Service;
-    }
+<#list controllerConfig.fieldAnnotations as annotation>
+    ${annotation}
+</#list>
+    protected ${entityName}Service ${entityName?uncap_first}Service;
 
     @GET
     public Response getAll${entityName}s() {
