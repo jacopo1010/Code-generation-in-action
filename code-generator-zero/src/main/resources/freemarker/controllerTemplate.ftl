@@ -68,7 +68,7 @@ import ${packageModel}.${entityName};
 import ${packageDto}.${entityName}Dto;
 import ${packageService}.${entityName}Service;
 
-@Path("api/${resourceName}")
+@Path("/${resourceName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ${entityName}ControllerBase {
