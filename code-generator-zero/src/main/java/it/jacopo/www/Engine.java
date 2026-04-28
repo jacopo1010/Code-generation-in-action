@@ -59,6 +59,7 @@ public class Engine {
 		this.createModel(metaClasses, path);
 		this.createRepository(metaClasses, path);
 		this.createService(metaClasses, path);
+		this.createDto(metaClasses, path);
 		this.createController(metaClasses, path);
 		return metaClasses;
 	}
@@ -107,17 +108,36 @@ public class Engine {
 		this.marker.generateService(packageModel, packageRepository, packageService, metaClasses,
 				FileUtil.resolveJavaOutputPath(applicationPropertiesPath, output));
 	}
+	
+	
+	private void createDto(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
+		Properties properties = this.loader.getApplicationProperties();
+		String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
+		String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
+		String packageDto = properties.getProperty(PropertiesCostanti.DTO_OUTPUT_PACKAGE);
+		if (packageDto == null || packageDto.trim().isEmpty()) {
+			packageDto = packageModel.replace(".model", ".dto");
+		}
+		this.marker.generateDto(packageModel, packageDto, metaClasses, FileUtil.resolveJavaOutputPath(applicationPropertiesPath, output));
+	}
 
 	private void createController(Map<String, MetaClass> metaClasses, String applicationPropertiesPath) {
 		Properties properties = this.loader.getApplicationProperties();
 		String output = properties.getProperty(PropertiesCostanti.JAVA_OUTPUT_PATH);
 		String packageModel = properties.getProperty(PropertiesCostanti.PACKAGE_MODEL);
 		String packageService = properties.getProperty(PropertiesCostanti.SERVICE_OUTPUT_PACKAGE);
+		String packageDto = properties.getProperty(PropertiesCostanti.DTO_OUTPUT_PACKAGE);
 		String packageController = properties.getProperty(PropertiesCostanti.CONTROLLER_OUTPUT_PACKAGE);
+		if (packageDto == null || packageDto.trim().isEmpty()) {
+			packageDto = packageModel.replace(".model", ".dto");
+		}
 		if (packageController == null || packageController.trim().isEmpty()) {
 			packageController = packageService.replace(".service", ".controller");
 		}
-		this.marker.generateController(packageModel, packageService, packageController, metaClasses,
+		this.marker.generateController(packageModel, packageDto, packageService, packageController, metaClasses,
 				FileUtil.resolveJavaOutputPath(applicationPropertiesPath, output));
 	}
+	
+	
+	
 }

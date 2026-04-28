@@ -33,6 +33,7 @@
 
 <#assign entityName = metaClass.name>
 <#assign packageModel = packageModel!"jacopo.with.develop.model">
+<#assign packageDto = packageDto!"jacopo.with.develop.dto">
 <#assign packageService = packageService!"jacopo.with.develop.service">
 <#assign packageController = packageController!"jacopo.with.develop.controller">
 <#assign allFields = metaClass.fields?values>
@@ -64,6 +65,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import ${packageModel}.${entityName};
+import ${packageDto}.${entityName}Dto;
 import ${packageService}.${entityName}Service;
 
 @Path("api/${resourceName}")
@@ -80,7 +82,7 @@ public class ${entityName}ControllerBase {
     @GET
     public Response getAll${entityName}s() {
         List<${entityName}> ${entityName?uncap_first}s = this.${entityName?uncap_first}Service.findAll();
-        return Response.ok(${entityName?uncap_first}s).build();
+        return Response.ok(this.toDtoList(${entityName?uncap_first}s)).build();
     }
 
     @GET
@@ -107,7 +109,7 @@ public class ${entityName}ControllerBase {
         if (keyword == null || keyword.isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
-        return Response.ok(this.${entityName?uncap_first}Service.findByKeyword(keyword)).build();
+        return Response.ok(this.toDtoList(this.${entityName?uncap_first}Service.findByKeyword(keyword))).build();
     }
 
 </#if>
@@ -119,21 +121,21 @@ public class ${entityName}ControllerBase {
         if (!${entityName?uncap_first}.isPresent()) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
-        return Response.ok(${entityName?uncap_first}.get()).build();
+        return Response.ok(this.toDto(${entityName?uncap_first}.get())).build();
     }
 
 </#if>
     @POST
-    public Response create${entityName}(${entityName} ${entityName?uncap_first}) {
+    public Response create${entityName}(${entityName}Dto ${entityName?uncap_first}) {
         try {
-            ${entityName} created = this.${entityName?uncap_first}Service.save(${entityName?uncap_first});
+            ${entityName} created = this.${entityName?uncap_first}Service.save(this.toEntity(${entityName?uncap_first}));
 <#if idField?has_content>
             if (created.get${idField.name?cap_first}() == null) {
                 return Response.serverError().build();
             }
-            return Response.created(URI.create("/api/${resourceName}/" + created.get${idField.name?cap_first}())).entity(created).build();
+            return Response.created(URI.create("/api/${resourceName}/" + created.get${idField.name?cap_first}())).entity(this.toDto(created)).build();
 <#else>
-            return Response.status(Response.Status.CREATED).entity(created).build();
+            return Response.status(Response.Status.CREATED).entity(this.toDto(created)).build();
 </#if>
         } catch (IllegalArgumentException exception) {
             return Response.status(Response.Status.BAD_REQUEST).entity(exception.getMessage()).build();
@@ -143,17 +145,18 @@ public class ${entityName}ControllerBase {
 <#if idField?has_content>
     @PUT
     @Path("/{id}")
-    public Response update${entityName}(@PathParam("id") ${idField.javaType} id, ${entityName} ${entityName?uncap_first}) {
+    public Response update${entityName}(@PathParam("id") ${idField.javaType} id, ${entityName}Dto ${entityName?uncap_first}) {
         if (${entityName?uncap_first} == null) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
         try {
             ${entityName?uncap_first}.set${idField.name?cap_first}(id);
-            boolean updated = this.${entityName?uncap_first}Service.update(${entityName?uncap_first});
+            ${entityName} entity = this.toEntity(${entityName?uncap_first});
+            boolean updated = this.${entityName?uncap_first}Service.update(entity);
             if (!updated) {
                 return Response.status(Response.Status.BAD_REQUEST).build();
             }
-            return Response.ok(${entityName?uncap_first}).build();
+            return Response.ok(this.toDto(entity)).build();
         } catch (IllegalArgumentException exception) {
             return Response.status(Response.Status.BAD_REQUEST).entity(exception.getMessage()).build();
         }
@@ -193,8 +196,40 @@ public class ${entityName}ControllerBase {
         if (${relationField.name}Id == null) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
-        return Response.ok(this.${entityName?uncap_first}Service.findBy${relationField.name?cap_first}Id(${relationField.name}Id)).build();
+        return Response.ok(this.toDtoList(this.${entityName?uncap_first}Service.findBy${relationField.name?cap_first}Id(${relationField.name}Id))).build();
     }
 
 </#list>
+    protected ${entityName}Dto toDto(${entityName} entity) {
+        if (entity == null) {
+            return null;
+        }
+        ${entityName}Dto dto = new ${entityName}Dto();
+<#list allFields as field>
+        dto.set${field.name?cap_first}(entity.get${field.name?cap_first}());
+</#list>
+        return dto;
+    }
+
+    protected List<${entityName}Dto> toDtoList(List<${entityName}> entities) {
+        List<${entityName}Dto> result = new java.util.ArrayList<${entityName}Dto>();
+        if (entities == null) {
+            return result;
+        }
+        for (${entityName} entity : entities) {
+            result.add(this.toDto(entity));
+        }
+        return result;
+    }
+
+    protected ${entityName} toEntity(${entityName}Dto dto) {
+        if (dto == null) {
+            return null;
+        }
+        ${entityName} entity = new ${entityName}();
+<#list allFields as field>
+        entity.set${field.name?cap_first}(dto.get${field.name?cap_first}());
+</#list>
+        return entity;
+    }
 }

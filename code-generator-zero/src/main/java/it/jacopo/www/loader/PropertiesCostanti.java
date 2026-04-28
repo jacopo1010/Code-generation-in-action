@@ -10,16 +10,7 @@ public class PropertiesCostanti {
     public static final String REPOSITORY_OUTPUT_PACKAGE = "generator.repository.package";
     public static final String SERVICE_OUTPUT_PACKAGE = "generator.service.package";
     public static final String CONTROLLER_OUTPUT_PACKAGE = "generator.controller.package";
-	
+	public static final String DTO_OUTPUT_PACKAGE ="generator.dto.package";
  
-	/***
- domain.model.path=C:/project/models/domain.xml
-ui.config.path=C:/project/config/ui-config.json
-output.path=C:/project/generated
-generator.backend.enabled=true
-generator.frontend.metadata.enabled=true
-generator.sql.enabled=true
-base.package=org.jacopo.generated
-generator.java.output.path=src/main/java
-	 */
+
 }

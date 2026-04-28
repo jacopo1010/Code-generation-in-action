@@ -14,7 +14,8 @@ public class FreeMarkerManager extends FileGenerator {
 	private final RepositoryGenerator repositoryGenerator;
 	private final ServiceGenerator serviceGenerator;
 	private final ControllerGenerator controllerGenerator;
-
+    private final DtoGenerator dtoGenerator;
+	
 	public FreeMarkerManager(IO io) {
 		super(io);
 		this.modelGenerator = new ModelGenerator(io);
@@ -22,6 +23,7 @@ public class FreeMarkerManager extends FileGenerator {
 		this.repositoryGenerator = new RepositoryGenerator(io);
 		this.serviceGenerator = new ServiceGenerator(io);
 		this.controllerGenerator = new ControllerGenerator(io);
+		this.dtoGenerator = new DtoGenerator(io);
 	}
 
 	public void generateModel(String packageModel, Map<String, MetaClass> metaClasses, String outputRoot) {
@@ -41,9 +43,13 @@ public class FreeMarkerManager extends FileGenerator {
 		this.serviceGenerator.generate(packageModel, packageRepository, packageService, metaClasses, outputRoot);
 	}
 
-	public void generateController(String packageModel, String packageService, String packageController,
+	public void generateDto(String packageModel, String packageDto, Map<String, MetaClass> metaClasses, String outputRoot) {
+		this.dtoGenerator.generate(packageModel, packageDto, metaClasses, outputRoot);
+	}
+	
+	public void generateController(String packageModel, String packageDto, String packageService, String packageController,
 			Map<String, MetaClass> metaClasses, String outputRoot) {
-		this.controllerGenerator.generate(packageModel, packageService, packageController, metaClasses, outputRoot);
+		this.controllerGenerator.generate(packageModel, packageDto, packageService, packageController, metaClasses, outputRoot);
 	}
 
 	protected void validateOutputRoot(String outputRoot) {

@@ -670,6 +670,89 @@ public class FreeMarkerManagerTest extends TestCase {
 		}
 	}
 
+	public void testGenerateDtoCreaClasseAutonoma() throws Exception {
+		File tempDirectory = Files.createTempDirectory("dto-template-test").toFile();
+		try {
+			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
+			MetaClass taskMetaClass = new MetaClass();
+			taskMetaClass.setName("Task");
+
+			MetaField idField = new MetaField();
+			idField.setName("id");
+			idField.setJavaType("Long");
+			taskMetaClass.addField(idField);
+
+			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
+			metaClasses.put(taskMetaClass.getName(), taskMetaClass);
+
+			manager.generateDto(
+					"it.test.model",
+					"it.test.dto",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
+
+			File generatedFile = new File(tempDirectory, "it\\test\\dto\\TaskDto.java");
+			assertTrue("Dto non generato nel path atteso", generatedFile.isFile());
+
+			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(generatedContent.contains("package it.test.dto;"));
+			assertTrue(generatedContent.contains("public class TaskDto"));
+			assertFalse(generatedContent.contains("extends Task"));
+			assertTrue(generatedContent.contains("private Long id;"));
+			assertTrue(generatedContent.contains("public Long getId()"));
+			assertTrue(generatedContent.contains("public TaskDto()"));
+		} finally {
+			this.deleteRecursively(tempDirectory);
+		}
+	}
+
+	public void testGenerateDtoImportaIModelPerLeRelazioni() throws Exception {
+		File tempDirectory = Files.createTempDirectory("dto-relations-template-test").toFile();
+		try {
+			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
+
+			MetaClass projectMetaClass = new MetaClass();
+			projectMetaClass.setName("Project");
+			MetaField projectIdField = new MetaField();
+			projectIdField.setName("id");
+			projectIdField.setJavaType("Long");
+			projectMetaClass.addField(projectIdField);
+
+			MetaClass taskMetaClass = new MetaClass();
+			taskMetaClass.setName("Task");
+			MetaField taskIdField = new MetaField();
+			taskIdField.setName("id");
+			taskIdField.setJavaType("Long");
+			taskMetaClass.addField(taskIdField);
+
+			MetaField projectField = new MetaField();
+			projectField.setName("project");
+			projectField.setJavaType("Project");
+			projectField.setRelation(true);
+			projectField.setRelationType("MANY_TO_ONE");
+			taskMetaClass.addField(projectField);
+
+			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
+			metaClasses.put(projectMetaClass.getName(), projectMetaClass);
+			metaClasses.put(taskMetaClass.getName(), taskMetaClass);
+
+			manager.generateDto(
+					"it.test.model",
+					"it.test.dto",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
+
+			File generatedFile = new File(tempDirectory, "it\\test\\dto\\TaskDto.java");
+			assertTrue("Dto non generato nel path atteso", generatedFile.isFile());
+
+			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(generatedContent.contains("import it.test.model.Project;"));
+			assertTrue(generatedContent.contains("private Project project;"));
+		} finally {
+			this.deleteRecursively(tempDirectory);
+		}
+	}
+
 	public void testGenerateControllerCreaCrudCompletoBasatoSulService() throws Exception {
 		File tempDirectory = Files.createTempDirectory("controller-template-test").toFile();
 		try {
@@ -692,6 +775,7 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateController(
 					"it.test.model",
+					"it.test.dto",
 					"it.test.service",
 					"it.test.controller",
 					metaClasses,
@@ -709,6 +793,7 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("import jakarta.ws.rs.core.Response;"));
 			assertTrue(generatedContent.contains("import java.util.Optional;"));
 			assertTrue(generatedContent.contains("import it.test.model.Task;"));
+			assertTrue(generatedContent.contains("import it.test.dto.TaskDto;"));
 			assertTrue(generatedContent.contains("import it.test.service.TaskService;"));
 			assertTrue(generatedContent.contains("@Path(\"api/tasks\")"));
 			assertTrue(generatedContent.contains("public class TaskControllerBase"));
@@ -716,25 +801,29 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("protected TaskControllerBase(TaskService taskService)"));
 			assertTrue(generatedContent.contains("this.taskService = taskService;"));
 			assertTrue(generatedContent.contains("public Response getAllTasks()"));
-			assertTrue(generatedContent.contains("return Response.ok(tasks).build();"));
+			assertTrue(generatedContent.contains("return Response.ok(this.toDtoList(tasks)).build();"));
 			assertTrue(generatedContent.contains("public Response countTasks()"));
 			assertTrue(generatedContent.contains("public Response existsTask(@PathParam(\"id\") Long id)"));
 			assertTrue(generatedContent.contains("return Response.ok(this.taskService.existsById(id)).build();"));
 			assertTrue(generatedContent.contains("public Response findByKeyword(@QueryParam(\"keyword\") String keyword)"));
-			assertTrue(generatedContent.contains("return Response.ok(this.taskService.findByKeyword(keyword)).build();"));
+			assertTrue(generatedContent.contains("return Response.ok(this.toDtoList(this.taskService.findByKeyword(keyword))).build();"));
 			assertTrue(generatedContent.contains("public Response getTask(@PathParam(\"id\") Long id)"));
 			assertTrue(generatedContent.contains("Optional<Task> task = this.taskService.findById(id);"));
 			assertTrue(generatedContent.contains("if (!task.isPresent())"));
-			assertTrue(generatedContent.contains("return Response.ok(task.get()).build();"));
-			assertTrue(generatedContent.contains("public Response createTask(Task task)"));
-			assertTrue(generatedContent.contains("Task created = this.taskService.save(task);"));
-			assertTrue(generatedContent.contains("return Response.created(URI.create(\"/api/tasks/\" + created.getId())).entity(created).build();"));
-			assertTrue(generatedContent.contains("public Response updateTask(@PathParam(\"id\") Long id, Task task)"));
+			assertTrue(generatedContent.contains("return Response.ok(this.toDto(task.get())).build();"));
+			assertTrue(generatedContent.contains("public Response createTask(TaskDto task)"));
+			assertTrue(generatedContent.contains("Task created = this.taskService.save(this.toEntity(task));"));
+			assertTrue(generatedContent.contains("return Response.created(URI.create(\"/api/tasks/\" + created.getId())).entity(this.toDto(created)).build();"));
+			assertTrue(generatedContent.contains("public Response updateTask(@PathParam(\"id\") Long id, TaskDto task)"));
 			assertTrue(generatedContent.contains("task.setId(id);"));
-			assertTrue(generatedContent.contains("boolean updated = this.taskService.update(task);"));
+			assertTrue(generatedContent.contains("Task entity = this.toEntity(task);"));
+			assertTrue(generatedContent.contains("boolean updated = this.taskService.update(entity);"));
+			assertTrue(generatedContent.contains("return Response.ok(this.toDto(entity)).build();"));
 			assertTrue(generatedContent.contains("public Response deleteAll()"));
 			assertTrue(generatedContent.contains("public Response deleteById(@PathParam(\"id\") Long id)"));
 			assertTrue(generatedContent.contains("boolean deleted = this.taskService.delete(id);"));
+			assertTrue(generatedContent.contains("protected TaskDto toDto(Task entity)"));
+			assertTrue(generatedContent.contains("protected Task toEntity(TaskDto dto)"));
 			assertTrue(wrapperContent.contains("public class TaskController extends TaskControllerBase"));
 			assertTrue(wrapperContent.contains("import it.test.service.TaskService;"));
 			assertTrue(wrapperContent.contains("public TaskController(TaskService taskService)"));
@@ -777,6 +866,7 @@ public class FreeMarkerManagerTest extends TestCase {
 
 			manager.generateController(
 					"it.test.model",
+					"it.test.dto",
 					"it.test.service",
 					"it.test.controller",
 					metaClasses,
@@ -788,7 +878,7 @@ public class FreeMarkerManagerTest extends TestCase {
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
 			assertTrue(generatedContent.contains("@Path(\"/by-contain/{containId}\")"));
 			assertTrue(generatedContent.contains("public Response findByContainId(@PathParam(\"containId\") Long containId)"));
-			assertTrue(generatedContent.contains("return Response.ok(this.taskService.findByContainId(containId)).build();"));
+			assertTrue(generatedContent.contains("return Response.ok(this.toDtoList(this.taskService.findByContainId(containId))).build();"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}

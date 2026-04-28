@@ -18,12 +18,13 @@ public class ControllerGenerator extends FileGenerator {
 		super(io);
 	}
 
-	public void generate(String packageModel, String packageService, String packageController,
+	public void generate(String packageModel, String packageDto, String packageService, String packageController,
 			Map<String, MetaClass> metaClasses, String outputRoot) {
 		try {
 			this.validateOutputRoot(outputRoot);
 			this.validateMetaClasses(metaClasses);
 			this.validatePackage(packageModel);
+			this.validatePackage(packageDto);
 			this.validatePackage(packageService);
 			this.validatePackage(packageController);
 
@@ -32,6 +33,7 @@ public class ControllerGenerator extends FileGenerator {
 				Map<String, Object> data = new HashMap<String, Object>();
 				data.put("metaClass", metaClass);
 				data.put("packageModel", packageModel);
+				data.put("packageDto", packageDto);
 				data.put("packageService", packageService);
 				data.put("packageController", packageController);
 				data.put("metaClasses", metaClasses);
