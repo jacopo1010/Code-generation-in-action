@@ -6,6 +6,7 @@ package ${packageController};
 <#list controllerConfig.wrapperImports as importLine>
 import ${importLine};
 </#list>
+import jakarta.enterprise.context.RequestScoped;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -28,5 +29,6 @@ ${annotation}
 @Path("/${resourceName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@RequestScoped
 public class ${entityName}Controller extends ${entityName}ControllerBase {
 }

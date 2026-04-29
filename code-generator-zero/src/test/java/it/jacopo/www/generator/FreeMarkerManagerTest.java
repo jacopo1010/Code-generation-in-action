@@ -872,12 +872,14 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue("ControllerGenerated non generato nel path atteso", generatedFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(generatedContent.contains("dto.setProject(entity.getProject() != null ? entity.getProject().getId() : null);"));
+			assertTrue(generatedContent.contains("import it.test.model.Project;"));
+			assertTrue(generatedContent.contains("import it.test.model.Tag;"));
 			assertTrue(generatedContent.contains("relationEntity.setId(dto.getProject());"));
-			assertTrue(generatedContent.contains("List<Long> tagsIds = new java.util.ArrayList<>();"));
-			assertTrue(generatedContent.contains("dto.setTags(tagsIds);"));
 			assertTrue(generatedContent.contains("for (Long relationId : dto.getTags())"));
 			assertTrue(generatedContent.contains("relationEntity.setId(relationId);"));
+			assertFalse(generatedContent.contains("dto.setProject(entity.getProject()"));
+			assertFalse(generatedContent.contains("dto.setTags(tagsIds);"));
+			assertFalse(generatedContent.contains("entity.getTags()"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -957,9 +959,11 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(wrapperContent.contains("import jakarta.ws.rs.Produces;"));
 			assertTrue(wrapperContent.contains("import jakarta.ws.rs.Consumes;"));
 			assertTrue(wrapperContent.contains("import jakarta.ws.rs.core.MediaType;"));
+			assertTrue(wrapperContent.contains("import jakarta.enterprise.context.RequestScoped;"));
 			assertTrue(wrapperContent.contains("@Path(\"/tasks\")"));
 			assertTrue(wrapperContent.contains("@Produces(MediaType.APPLICATION_JSON)"));
 			assertTrue(wrapperContent.contains("@Consumes(MediaType.APPLICATION_JSON)"));
+			assertTrue(wrapperContent.contains("@RequestScoped"));
 			assertTrue(wrapperContent.contains("public class TaskController extends TaskControllerBase"));
 			assertFalse(wrapperContent.contains("public TaskController("));
 		} finally {

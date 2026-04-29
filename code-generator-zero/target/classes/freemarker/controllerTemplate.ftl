@@ -61,6 +61,12 @@
 </#if>
 <#assign stringFields = persistentFields?filter(field -> field.javaType == "String")>
 <#assign manyToOneFields = allFields?filter(field -> field.relation && field.relationType == "MANY_TO_ONE" && field.foreignKeyColumn?? && field.foreignKeyColumn?has_content)>
+<#assign relationTypesToImport = []>
+<#list allFields as field>
+    <#if field.relation && !relationTypesToImport?seq_contains(field.javaType)>
+        <#assign relationTypesToImport = relationTypesToImport + [field.javaType]>
+    </#if>
+</#list>
 <#assign resourceName = toSqlName(entityName) + "s">
 <#assign controllerConfig = jakartaEe.controller>
 
@@ -82,6 +88,9 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import ${packageModel}.${entityName};
+<#list relationTypesToImport as relationType>
+import ${packageModel}.${relationType};
+</#list>
 import ${packageDto}.${entityName}Dto;
 import ${packageService}.${entityName}Service;
 
