@@ -231,22 +231,7 @@ public abstract class ${entityName}ControllerBase {
         }
         ${entityName}Dto dto = new ${entityName}Dto();
 <#list allFields as field>
-<#if field.relation>
-    <#assign relationIdGetter = resolveRelationIdGetter(field)>
-    <#if field.collection>
-        if (entity.get${field.name?cap_first}() != null) {
-            List<Long> ${field.name}Ids = new java.util.ArrayList<>();
-            for (${field.javaType} relationEntity : entity.get${field.name?cap_first}()) {
-                if (relationEntity != null && relationEntity.${relationIdGetter}() != null) {
-                    ${field.name}Ids.add(relationEntity.${relationIdGetter}());
-                }
-            }
-            dto.set${field.name?cap_first}(${field.name}Ids);
-        }
-    <#else>
-        dto.set${field.name?cap_first}(entity.get${field.name?cap_first}() != null ? entity.get${field.name?cap_first}().${relationIdGetter}() : null);
-    </#if>
-<#else>
+<#if !field.relation>
         dto.set${field.name?cap_first}(entity.get${field.name?cap_first}());
 </#if>
 </#list>
