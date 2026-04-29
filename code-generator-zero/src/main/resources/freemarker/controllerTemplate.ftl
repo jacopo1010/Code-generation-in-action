@@ -31,6 +31,22 @@
     <#return "">
 </#function>
 
+<#function resolveRelationIdSetter field>
+    <#assign relationIdField = resolveRelationIdField(field)>
+    <#if relationIdField?has_content>
+        <#return "set" + relationIdField.name?cap_first>
+    </#if>
+    <#return "setId">
+</#function>
+
+<#function resolveRelationIdGetter field>
+    <#assign relationIdField = resolveRelationIdField(field)>
+    <#if relationIdField?has_content>
+        <#return "get" + relationIdField.name?cap_first>
+    </#if>
+    <#return "getId">
+</#function>
+
 <#assign entityName = metaClass.name>
 <#assign packageModel = packageModel!"jacopo.with.develop.model">
 <#assign packageDto = packageDto!"jacopo.with.develop.dto">
@@ -206,7 +222,24 @@ public abstract class ${entityName}ControllerBase {
         }
         ${entityName}Dto dto = new ${entityName}Dto();
 <#list allFields as field>
+<#if field.relation>
+    <#assign relationIdGetter = resolveRelationIdGetter(field)>
+    <#if field.collection>
+        if (entity.get${field.name?cap_first}() != null) {
+            List<Long> ${field.name}Ids = new java.util.ArrayList<>();
+            for (${field.javaType} relationEntity : entity.get${field.name?cap_first}()) {
+                if (relationEntity != null && relationEntity.${relationIdGetter}() != null) {
+                    ${field.name}Ids.add(relationEntity.${relationIdGetter}());
+                }
+            }
+            dto.set${field.name?cap_first}(${field.name}Ids);
+        }
+    <#else>
+        dto.set${field.name?cap_first}(entity.get${field.name?cap_first}() != null ? entity.get${field.name?cap_first}().${relationIdGetter}() : null);
+    </#if>
+<#else>
         dto.set${field.name?cap_first}(entity.get${field.name?cap_first}());
+</#if>
 </#list>
         return dto;
     }
@@ -228,7 +261,30 @@ public abstract class ${entityName}ControllerBase {
         }
         ${entityName} entity = new ${entityName}();
 <#list allFields as field>
+<#if field.relation>
+    <#assign relationIdSetter = resolveRelationIdSetter(field)>
+    <#if field.collection>
+        if (dto.get${field.name?cap_first}() != null) {
+            List<${field.javaType}> ${field.name}Entities = new java.util.ArrayList<>();
+            for (Long relationId : dto.get${field.name?cap_first}()) {
+                if (relationId != null) {
+                    ${field.javaType} relationEntity = new ${field.javaType}();
+                    relationEntity.${relationIdSetter}(relationId);
+                    ${field.name}Entities.add(relationEntity);
+                }
+            }
+            entity.set${field.name?cap_first}(${field.name}Entities);
+        }
+    <#else>
+        if (dto.get${field.name?cap_first}() != null) {
+            ${field.javaType} relationEntity = new ${field.javaType}();
+            relationEntity.${relationIdSetter}(dto.get${field.name?cap_first}());
+            entity.set${field.name?cap_first}(relationEntity);
+        }
+    </#if>
+<#else>
         entity.set${field.name?cap_first}(dto.get${field.name?cap_first}());
+</#if>
 </#list>
         return entity;
     }

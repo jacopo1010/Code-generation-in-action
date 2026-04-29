@@ -714,7 +714,7 @@ public class FreeMarkerManagerTest extends TestCase {
 		}
 	}
 
-	public void testGenerateDtoImportaIModelPerLeRelazioni() throws Exception {
+	public void testGenerateDtoUsaLongPerLeRelazioni() throws Exception {
 		File tempDirectory = Files.createTempDirectory("dto-relations-template-test").toFile();
 		try {
 			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
@@ -754,8 +754,130 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue("Dto non generato nel path atteso", generatedFile.isFile());
 
 			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
-			assertTrue(generatedContent.contains("import it.test.model.Project;"));
-			assertTrue(generatedContent.contains("private Project project;"));
+			assertFalse(generatedContent.contains("import it.test.model.Project;"));
+			assertTrue(generatedContent.contains("private Long project;"));
+			assertTrue(generatedContent.contains("public Long getProject()"));
+			assertTrue(generatedContent.contains("public void setProject(Long project)"));
+		} finally {
+			this.deleteRecursively(tempDirectory);
+		}
+	}
+
+	public void testGenerateDtoUsaListaDiLongPerRelazioniCollezione() throws Exception {
+		File tempDirectory = Files.createTempDirectory("dto-collection-relations-template-test").toFile();
+		try {
+			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
+
+			MetaClass tagMetaClass = new MetaClass();
+			tagMetaClass.setName("Tag");
+			MetaField tagIdField = new MetaField();
+			tagIdField.setName("id");
+			tagIdField.setJavaType("Long");
+			tagMetaClass.addField(tagIdField);
+
+			MetaClass projectMetaClass = new MetaClass();
+			projectMetaClass.setName("Project");
+			MetaField projectIdField = new MetaField();
+			projectIdField.setName("id");
+			projectIdField.setJavaType("Long");
+			projectMetaClass.addField(projectIdField);
+
+			MetaField tagsField = new MetaField();
+			tagsField.setName("tags");
+			tagsField.setJavaType("Tag");
+			tagsField.setRelation(true);
+			tagsField.setCollection(true);
+			tagsField.setRelationType("MANY_TO_MANY");
+			projectMetaClass.addField(tagsField);
+
+			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
+			metaClasses.put(tagMetaClass.getName(), tagMetaClass);
+			metaClasses.put(projectMetaClass.getName(), projectMetaClass);
+
+			manager.generateDto(
+					"it.test.model",
+					"it.test.dto",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
+
+			File generatedFile = new File(tempDirectory, "it\\test\\dto\\ProjectDto.java");
+			assertTrue("Dto non generato nel path atteso", generatedFile.isFile());
+
+			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(generatedContent.contains("import java.util.List;"));
+			assertTrue(generatedContent.contains("private List<Long> tags = new ArrayList<>();"));
+			assertTrue(generatedContent.contains("public List<Long> getTags()"));
+			assertTrue(generatedContent.contains("public void setTags(List<Long> tags)"));
+		} finally {
+			this.deleteRecursively(tempDirectory);
+		}
+	}
+
+	public void testGenerateControllerConverteRelazioniDtoInId() throws Exception {
+		File tempDirectory = Files.createTempDirectory("controller-dto-relations-template-test").toFile();
+		try {
+			FreeMarkerManager manager = new FreeMarkerManager(new IOFittizio());
+
+			MetaClass projectMetaClass = new MetaClass();
+			projectMetaClass.setName("Project");
+			MetaField projectIdField = new MetaField();
+			projectIdField.setName("id");
+			projectIdField.setJavaType("Long");
+			projectMetaClass.addField(projectIdField);
+
+			MetaClass tagMetaClass = new MetaClass();
+			tagMetaClass.setName("Tag");
+			MetaField tagIdField = new MetaField();
+			tagIdField.setName("id");
+			tagIdField.setJavaType("Long");
+			tagMetaClass.addField(tagIdField);
+
+			MetaClass taskMetaClass = new MetaClass();
+			taskMetaClass.setName("Task");
+			MetaField taskIdField = new MetaField();
+			taskIdField.setName("id");
+			taskIdField.setJavaType("Long");
+			taskMetaClass.addField(taskIdField);
+
+			MetaField projectField = new MetaField();
+			projectField.setName("project");
+			projectField.setJavaType("Project");
+			projectField.setRelation(true);
+			projectField.setRelationType("MANY_TO_ONE");
+			projectField.setForeignKeyColumn("project_id");
+			taskMetaClass.addField(projectField);
+
+			MetaField tagsField = new MetaField();
+			tagsField.setName("tags");
+			tagsField.setJavaType("Tag");
+			tagsField.setRelation(true);
+			tagsField.setCollection(true);
+			tagsField.setRelationType("MANY_TO_MANY");
+			taskMetaClass.addField(tagsField);
+
+			Map<String, MetaClass> metaClasses = new LinkedHashMap<String, MetaClass>();
+			metaClasses.put(projectMetaClass.getName(), projectMetaClass);
+			metaClasses.put(tagMetaClass.getName(), tagMetaClass);
+			metaClasses.put(taskMetaClass.getName(), taskMetaClass);
+
+			manager.generateController(
+					"it.test.model",
+					"it.test.dto",
+					"it.test.service",
+					"it.test.controller",
+					metaClasses,
+					tempDirectory.getAbsolutePath());
+
+			File generatedFile = new File(tempDirectory, "it\\test\\controller\\TaskControllerBase.java");
+			assertTrue("ControllerGenerated non generato nel path atteso", generatedFile.isFile());
+
+			String generatedContent = new String(Files.readAllBytes(generatedFile.toPath()), StandardCharsets.UTF_8);
+			assertTrue(generatedContent.contains("dto.setProject(entity.getProject() != null ? entity.getProject().getId() : null);"));
+			assertTrue(generatedContent.contains("relationEntity.setId(dto.getProject());"));
+			assertTrue(generatedContent.contains("List<Long> tagsIds = new java.util.ArrayList<>();"));
+			assertTrue(generatedContent.contains("dto.setTags(tagsIds);"));
+			assertTrue(generatedContent.contains("for (Long relationId : dto.getTags())"));
+			assertTrue(generatedContent.contains("relationEntity.setId(relationId);"));
 		} finally {
 			this.deleteRecursively(tempDirectory);
 		}
@@ -799,18 +921,12 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("package it.test.controller;"));
 			assertTrue(generatedContent.contains("import jakarta.inject.Inject;"));
 			assertTrue(generatedContent.contains("import jakarta.ws.rs.Path;"));
-			assertTrue(generatedContent.contains("import jakarta.ws.rs.Produces;"));
-			assertTrue(generatedContent.contains("import jakarta.ws.rs.Consumes;"));
-			assertTrue(generatedContent.contains("import jakarta.ws.rs.core.MediaType;"));
 			assertTrue(generatedContent.contains("import jakarta.ws.rs.core.Response;"));
 			assertTrue(generatedContent.contains("import java.util.Optional;"));
 			assertTrue(generatedContent.contains("import it.test.model.Task;"));
 			assertTrue(generatedContent.contains("import it.test.dto.TaskDto;"));
 			assertTrue(generatedContent.contains("import it.test.service.TaskService;"));
-			assertTrue(generatedContent.contains("@Path(\"/tasks\")"));
-			assertTrue(generatedContent.contains("@Produces(MediaType.APPLICATION_JSON)"));
-			assertTrue(generatedContent.contains("@Consumes(MediaType.APPLICATION_JSON)"));
-			assertTrue(generatedContent.contains("public class TaskControllerBase"));
+			assertTrue(generatedContent.contains("public abstract class TaskControllerBase"));
 			assertTrue(generatedContent.contains("@Inject"));
 			assertTrue(generatedContent.contains("protected TaskService taskService;"));
 			assertTrue(generatedContent.contains("public Response getAllTasks()"));
@@ -837,8 +953,13 @@ public class FreeMarkerManagerTest extends TestCase {
 			assertTrue(generatedContent.contains("boolean deleted = this.taskService.delete(id);"));
 			assertTrue(generatedContent.contains("protected TaskDto toDto(Task entity)"));
 			assertTrue(generatedContent.contains("protected Task toEntity(TaskDto dto)"));
-			assertTrue(wrapperContent.contains("import jakarta.enterprise.context.RequestScoped;"));
-			assertTrue(wrapperContent.contains("@RequestScoped"));
+			assertTrue(wrapperContent.contains("import jakarta.ws.rs.Path;"));
+			assertTrue(wrapperContent.contains("import jakarta.ws.rs.Produces;"));
+			assertTrue(wrapperContent.contains("import jakarta.ws.rs.Consumes;"));
+			assertTrue(wrapperContent.contains("import jakarta.ws.rs.core.MediaType;"));
+			assertTrue(wrapperContent.contains("@Path(\"/tasks\")"));
+			assertTrue(wrapperContent.contains("@Produces(MediaType.APPLICATION_JSON)"));
+			assertTrue(wrapperContent.contains("@Consumes(MediaType.APPLICATION_JSON)"));
 			assertTrue(wrapperContent.contains("public class TaskController extends TaskControllerBase"));
 			assertFalse(wrapperContent.contains("public TaskController("));
 		} finally {
