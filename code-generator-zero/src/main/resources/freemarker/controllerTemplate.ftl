@@ -57,16 +57,13 @@ import java.util.Optional;
 <#list controllerConfig.baseImports as importLine>
 import ${importLine};
 </#list>
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import ${packageModel}.${entityName};
 import ${packageDto}.${entityName}Dto;
@@ -75,10 +72,7 @@ import ${packageService}.${entityName}Service;
 <#list controllerConfig.baseClassAnnotations as annotation>
 ${annotation}
 </#list>
-@Path("/${resourceName}")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
-public class ${entityName}ControllerBase {
+public abstract class ${entityName}ControllerBase {
 
 <#list controllerConfig.fieldAnnotations as annotation>
     ${annotation}
@@ -218,7 +212,7 @@ public class ${entityName}ControllerBase {
     }
 
     protected List<${entityName}Dto> toDtoList(List<${entityName}> entities) {
-        List<${entityName}Dto> result = new java.util.ArrayList<${entityName}Dto>();
+        List<${entityName}Dto> result = new java.util.ArrayList<>();
         if (entities == null) {
             return result;
         }

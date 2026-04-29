@@ -37,7 +37,7 @@ public final class JakartaEeTemplateContextFactory {
 				"baseImports", List.of("jakarta.inject.Inject"),
 				"baseClassAnnotations", List.of(),
 				"fieldAnnotations", List.of("@Inject"),
-				"wrapperImports", List.of("jakarta.enterprise.context.RequestScoped"),
-				"wrapperAnnotations", List.of("@RequestScoped"));
+				"wrapperImports", List.of(),
+				"wrapperAnnotations", List.of());
 	}
 }
